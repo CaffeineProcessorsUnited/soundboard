@@ -1,0 +1,24 @@
+{
+  "name": "cpu-soundboard",
+  "version": "0.0.1",
+  "description": "A soundboard server",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CaffeineProcessorsUnited/soundboard.git"
+  },
+  "author": "CaffeineProcessorsUnited",
+  "bugs": {
+    "url": "https://github.com/CaffeineProcessorsUnited/soundboard/issues"
+  },
+  "homepage": "https://github.com/CaffeineProcessorsUnited/soundboard#readme",
+  "dependencies": {
+    "body-parser": "^1.15.0",
+    "express": "^4.13.4",
+    "socket.io": "^1.4.5",
+    "socket.io-client": "^1.4.5"
+  }
+}

@@ -16,11 +16,11 @@ server.listen(8080, function () {
 	var client;
 	
 	api.get('*', function(req, res) {
-		res.send('This api doesn\'t wirk through GET. Please switch to POST!');
+		res.send('This api doesn\'t work through GET. Please switch to POST!');
 	});
 
 	api.post('*', function(req, res) {
-		// request.body contains the json data sent as POST data
+		// req.body contains the json data sent as POST data
 		client.emit('test');
 		res.send('Not specified');
 	});

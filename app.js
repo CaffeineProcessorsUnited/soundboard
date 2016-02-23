@@ -8,6 +8,7 @@ web.use(express.static('public'));
 
 server.listen(8080, function () {
 	console.log('Web interface is running on port 8080!');
+	// api is used as a connection between POST requests and socket
 	var api = express();
 	var bodyParser = require("body-parser");
 	api.use(bodyParser.urlencoded({ extended: false }));
@@ -19,7 +20,8 @@ server.listen(8080, function () {
 	});
 
 	api.post('*', function(req, res) {
-		client.emit('post', request.body);
+		// request.body contains the json data sent as POST data
+		client.emit('test');
 		res.send('Not specified');
 	});
 
@@ -35,7 +37,3 @@ io.on('connection', function(socket) {
 		console.log('Someone usccessfully tested something!');
 	});
 });
-
-// api is used as a connection between POST requests and socket
-
-

@@ -1,0 +1,26 @@
+{
+  "services": {
+    "ts3": {
+      "name": "Teamspeak 3"
+    },
+    "discord": {
+      "name": "Discord"
+    },
+  },
+  "users": {
+    "0": {
+      "name": "Admin",
+      "password": "admin",
+      "accounts": [
+        {
+          "service": "ts3",
+          "id": "0123456789ABCDEF"
+        },
+        {
+          "service": "discord",
+          "id": "0123456789ABCDEF"
+        }
+      ]
+    }
+  }
+}

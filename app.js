@@ -75,11 +75,14 @@ var classes = {
 			}
 		},
 		saveQueueAsPlaylist: function(name){
-			playlists.name.tracks = []
+			playlists.name={
+				tracks: []
+			}
 			this.queue.forEach(function(track){
-				var trackinfo;
-				trackinfo.service = track.getService();
-				trackinfo.path = track.getPath();
+				var trackinfo={
+					service: track.getService(),
+					path:	track.getPath()
+				};
 				playlists.name.tracks.insert(trackinfo);
 			});
 		}

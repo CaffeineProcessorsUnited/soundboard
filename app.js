@@ -7,6 +7,8 @@ var server = require('http').Server(web);
 var io = require('socket.io')(server);
 var ioc = require('socket.io-client');
 
+var playlists = require('./playlists.json');
+
 // Array Remove - By John Resig (MIT Licensed)
 Array.prototype.remove = function(from, to) {
   var rest = this.slice(parseInt(to || from) + 1 || this.length);
@@ -57,6 +59,18 @@ var classes = {
 		},
 		list: function() {
 			return this.queue;
+		}
+		clear: function() {
+			for (var i = 0; i < this.queue.length; i++) {
+				this.queue.delete(i);
+			}
+		},
+		loadQueueFromPlaylist: function(name){
+				this.clear();
+				playlists.name.tracks.forEach(function(trackinfo){
+					this.add(new classes.Track(trackinfo.service, trackinfo.path, undefined));
+				});
+			}
 		}
 	}),
 	"Track": Class({

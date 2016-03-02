@@ -1,0 +1,10 @@
+{
+  "name":{
+      "tracks":[
+          {
+              "service": "youtube",
+              "path": "file"
+          }
+      ]
+    }
+}

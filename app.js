@@ -68,12 +68,21 @@ var classes = {
 		},
 		loadQueueFromPlaylist: function(name){
 			if(playlists.name){
-					this.clear();
-					playlists.name.tracks.forEach(function(trackinfo){
-						this.add(new classes.Track(trackinfo.service, trackinfo.path, undefined));
-					});
-				}
+				this.clear();
+				playlists.name.tracks.forEach(function(trackinfo){
+					this.add(new classes.Track(trackinfo.service, trackinfo.path, undefined));
+				});
 			}
+		},
+		saveQueueAsPlaylist: function(name){
+			playlists.name.tracks = []
+			this.queue.forEach(function(track){
+				var trackinfo;
+				trackinfo.service = track.getService();
+				trackinfo.path = track.getPath();
+				playlists.name.tracks.insert(trackinfo);
+			});
+		}
 		}
 	}),
 	"Track": Class({

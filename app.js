@@ -66,10 +66,12 @@ var classes = {
 			}
 		},
 		loadQueueFromPlaylist: function(name){
-				this.clear();
-				playlists.name.tracks.forEach(function(trackinfo){
-					this.add(new classes.Track(trackinfo.service, trackinfo.path, undefined));
-				});
+			if(playlists.name){
+					this.clear();
+					playlists.name.tracks.forEach(function(trackinfo){
+						this.add(new classes.Track(trackinfo.service, trackinfo.path, undefined));
+					});
+				}
 			}
 		}
 	}),

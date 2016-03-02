@@ -104,7 +104,8 @@ var classes = {
 var runtime = {
 	"started":	new Date().getTime(),
 	"logger": logger,
-	"queue":		new classes.Queue()
+	"queue":		new classes.Queue(),
+	"playlists": playlists
 };
 
 server.listen(8080, function () {

@@ -1,5 +1,6 @@
 const util = require('util');
 const crypto = require('crypto');
+const fs = require('fs');
 
 var express = require('express');
 var web = express();
@@ -7,7 +8,7 @@ var server = require('http').Server(web);
 var io = require('socket.io')(server);
 var ioc = require('socket.io-client');
 
-var playlists = require('./playlists.json');
+var playlists = JSON.parse(fs.readFileSync('playlists.json', 'utf8'));
 
 // Array Remove - By John Resig (MIT Licensed)
 Array.prototype.remove = function(from, to) {

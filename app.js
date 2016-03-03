@@ -60,7 +60,7 @@ var classes = {
 		},
 		list: function() {
 			return this.queue;
-		}
+		},
 		clear: function() {
 			for (var i = 0; i < this.queue.length; i++) {
 				this.queue.delete(i);
@@ -86,7 +86,6 @@ var classes = {
 				playlists[name].tracks.insert(trackinfo);
 			});
 			fs.writeFile('playlists.json', JSON.stringify(playlists), 'utf-8');
-		}
 		}
 	}),
 	"Track": Class({

@@ -1,5 +1,6 @@
 const util = require('util');
 const crypto = require('crypto');
+const fs = require('fs');
 
 var callerId = require('caller-id');
 
@@ -40,6 +41,7 @@ var Class = function(methods) {
 web.use(express.static('public'));
 
 var classes = {
+<<<<<<< HEAD
   "Queue": Class({
     initialize: function() {
       this.queue = [];
@@ -64,7 +66,33 @@ var classes = {
         this.queue[a] = this.queue[b];
         this.queue[b] = tmp;
       }
-    }
+    },
+		clear: function() {
+			for (var i = 0; i < this.queue.length; i++) {
+				this.queue.delete(i);
+			}
+		},
+		loadQueueFromPlaylist: function(name){
+			if(playlists[name]){
+				this.clear();
+				playlists[name].tracks.forEach(function(trackinfo){
+					this.add(new classes.Track(trackinfo.service, trackinfo.path));
+				});
+			}
+		},
+		saveQueueAsPlaylist: function(name){
+			playlists[name]={
+				tracks: []
+			}
+			this.queue.forEach(function(track){
+				var trackinfo={
+					service: track.getService(),
+					path:	track.getPath()
+				};
+				playlists[name].tracks.insert(trackinfo);
+			});
+			fs.writeFile('playlists.json', JSON.stringify(playlists), 'utf-8');
+		}
   }),
   "Track": Class({
     initialize: function(service, path, time) {
@@ -94,6 +122,7 @@ var classes = {
 var runtime = new (function(undefined) {
     this.started = new Date().getTime();
     this.queue = new classes.Queue();
+    this.playlists = JSON.parse(fs.readFileSync('playlists.json', 'utf8'));
     this.log = function(msg) {
       var caller = callerId.getData();
       if (callerId.getString() == null) {
@@ -207,6 +236,17 @@ io.on('connection', function ioOnConnection(socket) {
   socket.on('get_queue', function socketGetQueue(data) {
     io.to(socket.id).emit('get_queue', { "queue": runtime.queue.list() });
   });
+	socket.on('get_playlist', function(data) {
+		if(data.name){
+			io.to(socket.id).emit('get_playlist', { "tracks": runtime.playlists[data.name].tracks});
+		} else {
+			var playlistnames = [];
+			for (var key in playlists) {
+				playlistnames.insert(key);
+			}
+			io.to(socket.id).emit('get_playlist', {"playlists": playlistnames});
+		}
+	});
   socket.on('clear_queue', function socketClearQueue() {
     runtime.queue.clear();
   });

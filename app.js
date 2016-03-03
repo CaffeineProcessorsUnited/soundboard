@@ -41,7 +41,6 @@ var Class = function(methods) {
 web.use(express.static('public'));
 
 var classes = {
-<<<<<<< HEAD
   "Queue": Class({
     initialize: function() {
       this.queue = [];

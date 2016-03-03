@@ -67,15 +67,15 @@ var classes = {
 			}
 		},
 		loadQueueFromPlaylist: function(name){
-			if(playlists.name){
+			if(playlists[name]){
 				this.clear();
-				playlists.name.tracks.forEach(function(trackinfo){
-					this.add(new classes.Track(trackinfo.service, trackinfo.path, undefined));
+				playlists[name].tracks.forEach(function(trackinfo){
+					this.add(new classes.Track(trackinfo.service, trackinfo.path));
 				});
 			}
 		},
 		saveQueueAsPlaylist: function(name){
-			playlists.name={
+			playlists[name]={
 				tracks: []
 			}
 			this.queue.forEach(function(track){
@@ -83,8 +83,9 @@ var classes = {
 					service: track.getService(),
 					path:	track.getPath()
 				};
-				playlists.name.tracks.insert(trackinfo);
+				playlists[name].tracks.insert(trackinfo);
 			});
+			fs.writeFile('playlists.json', JSON.stringify(playlists), 'utf-8');
 		}
 		}
 	}),
@@ -181,6 +182,17 @@ io.on('connection', function(socket) {
 	});
 	socket.on('get_queue', function(data) {
 		console.log('Someone usccessfully tested something!');
+	});
+	socket.on('get_playlist', function(data) {
+		if(data.name){
+			io.to(socket.id).emit('get_playlist', { "tracks": runtime.playlists[data.name].tracks});
+		} else {
+			var playlistnames = [];
+			for (var key in playlists) {
+				playlistnames.insert(key);
+			}
+			io.to(socket.id).emit('get_playlist', {"playlists": playlistnames});
+		}
 	});
 	socket.on('clear_queue', function() {
 		console.log('Someone usccessfully tested something!');

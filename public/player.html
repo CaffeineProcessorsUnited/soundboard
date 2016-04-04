@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title> Soundboard Player </title>
+    <style>
+      html{
+        margin: 0px;
+      }
+      body {
+        text-align: center;
+        margin: 0px;
+        padding: 0px;
+      }
+      header{
+        margin: 0px;
+        background-color: #FF4FAF;
+        padding: 10px;
+        color: white;
+      }
+      h1{
+        margin: 0px;
+        font-size: 50px;
+      }
+    </style>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      var socket = io("http://127.0.0.1:8080");
+    </script>
+  </head>
+  <body>
+    <header>
+      <h1> Soundboard Player </h1>
+    </header>
+    <div id="soudboard_player">
+    </div>
+  </body>
+</html>

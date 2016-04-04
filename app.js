@@ -183,6 +183,9 @@ server.listen(8080, function() {
 
 io.on('connection', function ioOnConnection(socket) {
   runtime.log('Client connected');
+  socket.on('disconnect', function(){
+    console.log('Client disconnected');
+  });
   socket.on('test', function() {
     runtime.log('Someone successfully tested something!');
   });

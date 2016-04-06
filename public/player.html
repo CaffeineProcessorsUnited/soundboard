@@ -39,14 +39,17 @@
                 $("#soundboard_player").html('<p>filesystem</p>');
             }
             else{
-                $("#soundboard_player").html('<p>Currently no track playing</p>');
+                $("#soundboard_player").html('<p>What the fuck happend?</p>');
             }
           }
           else{
-              $("#soundboard_player").html('<p>Data malformed</p>');
+              $("#soundboard_player").html('<p>No tracks in queue</p>');
           }
         });
         socket.emit('get_current_track');
+        socket.on('poll',function updateTrackInfo(){
+          socket.emit('get_current_track');
+        });
       });
     </script>
   </head>

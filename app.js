@@ -255,6 +255,6 @@ io.on('connection', function ioOnConnection(socket) {
   socket.on('get_current_track', function socketCurrentTrack() {
     runtime.log("Request currentTrack");
     runtime.log(JSON.stringify(runtime.queue[0]));
-    io.to(socket.id).emit('get_current_track', {'currentTrack': runtime.queue[0]});
+    io.to(socket.id).emit('get_current_track', {'currentTrack': runtime.queue[0], 'time': 0, 'playing':0});
   });
 });

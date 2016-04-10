@@ -26,13 +26,16 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
     <script>
       var loadyoutube=false;
+      var player;
+      var socket;
       var runtime = new (function(undefined){
         this.path="";
         this.time=0;
         this.playing=false;
+        this.service="";
       });
       $(document).ready(function(){
-        var socket = io();
+        socket = io();
         socket.on('get_current_track', function loadCurrentTrack(trackinfo){
           loadyoutube=false;
           console.log(JSON.stringify(trackinfo));
@@ -42,6 +45,7 @@
             runtime.path = track["path"];
             runtime.time = trackinfo["time"];
             runtime.playing = trackinfo["playing"];
+            runtime.service = trackinfo["service"];
             if(track["service"]=="youtube"){
                 $("#soundboard_player").html('<p>Youtube</p><div id="player"></div>');
                 var tag = document.createElement('script');
@@ -52,6 +56,21 @@
             }
             else if (track["service"]=="filesystem"){
                 $("#soundboard_player").html('<p>filesystem</p>');
+                player = document.createElement('audio');
+                player.src = runtime.path;
+                player.controls = true;
+                player.addEventListener("ended",function onEnded(){
+                  socket.emit("next");
+                });
+                player.addEventListener("pause",function onPause(){
+
+                });
+                player.addEventListener("canplay",function onCanPlay(){
+                  if(runtime.playing==true){
+                      player.play();
+                  }
+                });
+                $("#soundboard_player").append(player);
             }
             else{
                 $("#soundboard_player").html('<p>What the fuck happend?</p>');
@@ -61,9 +80,11 @@
               $("#soundboard_player").html('<p>No tracks in queue</p>');
           }
         });
+        socket.on('poll', function poll() {
+          socket.emit("get_current_track");
+        });
         socket.emit('get_current_track');
       });
-      var player;
       function onYouTubeIframeAPIReady() {
         if(loadyoutube){
           player = new YT.Player('player', {
@@ -77,20 +98,19 @@
           });
         }
       }
-
-      // 4. The API will call this function when the video player is ready.
       function onPlayerReady(event) {
-        event.target.playVideo();
+        if(runtime.playing==true){
+            event.target.playVideo();
+        }
       }
-
-      // 5. The API calls this function when the player's state changes.
-      //    The function indicates that when playing a video (state=1),
-      //    the player should play for six seconds and then stop.
-      var done = false;
       function onPlayerStateChange(event) {
-        if (event.data == YT.PlayerState.PLAYING && !done) {
-          setTimeout(stopVideo, 6000);
-          done = true;
+        if (event.data == YT.PlayerState.PLAYING) {
+        }
+        else if (event.data == YT.PlayerState.PAUSED){
+
+        }
+        else if (event.data == YT.PlayerState.ENDED){
+          socket.emit('next');
         }
       }
       function stopVideo() {

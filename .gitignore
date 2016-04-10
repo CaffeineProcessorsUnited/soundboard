@@ -35,3 +35,6 @@ node_modules
 # Configurations
 config.json
 playlists.json
+
+#Audioformats
+*.wav

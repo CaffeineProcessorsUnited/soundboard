@@ -1,3 +1,4 @@
+// @flow
 const util = require('util');
 const crypto = require('crypto');
 const fs = require('fs');
@@ -72,15 +73,15 @@ var classes = {
 			}
 		},
 		loadQueueFromPlaylist: function(name){
-			if(playlists[name]){
+			if(runtime.playlists[name]){
 				this.clear();
-				playlists[name].tracks.forEach(function(trackinfo){
+				runtime.playlists[name].tracks.forEach(function(trackinfo){
 					this.add(new classes.Track(trackinfo.service, trackinfo.path));
 				});
 			}
 		},
 		saveQueueAsPlaylist: function(name){
-			playlists[name]={
+			runtime.playlists[name]={
 				tracks: []
 			}
 			this.queue.forEach(function(track){
@@ -88,9 +89,9 @@ var classes = {
 					service: track.getService(),
 					path:	track.getPath()
 				};
-				playlists[name].tracks.insert(trackinfo);
+				runtime.playlists[name].tracks.insert(trackinfo);
 			});
-			fs.writeFile('playlists.json', JSON.stringify(playlists), 'utf-8');
+			fs.writeFile('playlists.json', JSON.stringify(runtime.playlists), 'utf-8');
 		}
   }),
   "Track": Class({
@@ -230,7 +231,7 @@ io.on('connection', function ioOnConnection(socket) {
   });
   socket.on('reorder_track', function socketReorderTrack(data) {
     if (data.a && data.b) {
-      runtime.queue.swap(a, b);
+      runtime.queue.swap(data.a, data.b);
     } else {
       runtime.log('What did you try to achieve?');
     }
@@ -243,7 +244,7 @@ io.on('connection', function ioOnConnection(socket) {
 			io.to(socket.id).emit('get_playlist', { "tracks": runtime.playlists[data.name].tracks});
 		} else {
 			var playlistnames = [];
-			for (var key in playlists) {
+			for (var key in runtime.playlists) {
 				playlistnames.insert(key);
 			}
 			io.to(socket.id).emit('get_playlist', {"playlists": playlistnames});

@@ -37,7 +37,6 @@
       $(document).ready(function(){
         socket = io();
         socket.on('get_current_track', function loadCurrentTrack(trackinfo){
-          loadyoutube=false;
           console.log(JSON.stringify(trackinfo));
           track = trackinfo["currentTrack"];
           console.log(JSON.stringify(track));
@@ -47,12 +46,17 @@
             runtime.playing = trackinfo["playing"];
             runtime.service = trackinfo["service"];
             if(track["service"]=="youtube"){
-                $("#soundboard_player").html('<p>Youtube</p><div id="player"></div>');
-                var tag = document.createElement('script');
-                tag.src = "https://www.youtube.com/iframe_api";
-                loadyoutube=true;
-                var firstScriptTag = document.getElementsByTagName('script')[0];
-                firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+                if(!loadyoutube) {
+                  $("#soundboard_player").html('<p>Youtube</p><div id="player"></div>');
+                  var tag = document.createElement('script');
+                  tag.src = "https://www.youtube.com/iframe_api";
+                  var firstScriptTag = document.getElementsByTagName('script')[0];
+                  firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+                  loadyoutube=true;
+                }
+                else {
+                  onYouTubeIframeAPIReady();
+                }
             }
             else if (track["service"]=="filesystem"){
                 $("#soundboard_player").html('<p>filesystem</p>');
@@ -83,10 +87,21 @@
         socket.on('poll', function poll() {
           socket.emit("get_current_track");
         });
+        socket.on('get_current_time', function returnCurrentTime(){
+          if(runtime.service == "youtube"){
+            socket.emit('current_Time':{"time":player.getCurrentTime()});
+          }
+          else if (runtime.service=="filesystem"){
+            socket.emit('current_Time':{"time":player.currentTime});
+          }
+          else {
+            console.log("No track playing, no Time to report");
+          }
+        });
         socket.emit('get_current_track');
       });
       function onYouTubeIframeAPIReady() {
-        if(loadyoutube){
+        if(runtime.service=="youtube"){
           player = new YT.Player('player', {
             height: '390',
             width: '640',

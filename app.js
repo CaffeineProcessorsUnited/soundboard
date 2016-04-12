@@ -262,4 +262,7 @@ io.on('connection', function ioOnConnection(socket) {
     //TODO logic for setting next track
     io.sockets.emit("poll");
   });
+  socket.on('current_Time', function socketUpdateTimeInfo(){
+    //TODO logic for saving current_Time
+  });
 });

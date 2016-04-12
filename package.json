@@ -23,6 +23,6 @@
     "socket.io-client": "^1.4.5"
   },
   "devDependencies": {
-    "flow-bin": "^0.22.1"
+    "flow-bin": "~0.22.1"
   }
 }

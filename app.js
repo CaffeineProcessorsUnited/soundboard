@@ -1,3 +1,4 @@
+// @flow
 const util = require('util');
 const crypto = require('crypto');
 const fs = require('fs');
@@ -72,15 +73,15 @@ var classes = {
 			}
 		},
 		loadQueueFromPlaylist: function(name){
-			if(playlists[name]){
+			if(runtime.playlists[name]){
 				this.clear();
-				playlists[name].tracks.forEach(function(trackinfo){
+				runtime.playlists[name].tracks.forEach(function(trackinfo){
 					this.add(new classes.Track(trackinfo.service, trackinfo.path));
 				});
 			}
 		},
 		saveQueueAsPlaylist: function(name){
-			playlists[name]={
+			runtime.playlists[name]={
 				tracks: []
 			}
 			this.queue.forEach(function(track){
@@ -88,9 +89,9 @@ var classes = {
 					service: track.getService(),
 					path:	track.getPath()
 				};
-				playlists[name].tracks.insert(trackinfo);
+				runtime.playlists[name].tracks.insert(trackinfo);
 			});
-			fs.writeFile('playlists.json', JSON.stringify(playlists), 'utf-8');
+			fs.writeFile('playlists.json', JSON.stringify(runtime.playlists), 'utf-8');
 		}
   }),
   "Track": Class({
@@ -183,6 +184,9 @@ server.listen(8080, function() {
 
 io.on('connection', function ioOnConnection(socket) {
   runtime.log('Client connected');
+  socket.on('disconnect', function(){
+    console.log('Client disconnected');
+  });
   socket.on('test', function() {
     runtime.log('Someone successfully tested something!');
   });
@@ -227,7 +231,7 @@ io.on('connection', function ioOnConnection(socket) {
   });
   socket.on('reorder_track', function socketReorderTrack(data) {
     if (data.a && data.b) {
-      runtime.queue.swap(a, b);
+      runtime.queue.swap(data.a, data.b);
     } else {
       runtime.log('What did you try to achieve?');
     }
@@ -240,7 +244,7 @@ io.on('connection', function ioOnConnection(socket) {
 			io.to(socket.id).emit('get_playlist', { "tracks": runtime.playlists[data.name].tracks});
 		} else {
 			var playlistnames = [];
-			for (var key in playlists) {
+			for (var key in runtime.playlists) {
 				playlistnames.insert(key);
 			}
 			io.to(socket.id).emit('get_playlist', {"playlists": playlistnames});
@@ -248,5 +252,14 @@ io.on('connection', function ioOnConnection(socket) {
 	});
   socket.on('clear_queue', function socketClearQueue() {
     runtime.queue.clear();
+  });
+  socket.on('get_current_track', function socketCurrentTrack() {
+    //runtime.log("Request currentTrack");
+    //runtime.log(JSON.stringify(runtime.queue[0]));
+    io.to(socket.id).emit('get_current_track', {'currentTrack': runtime.queue[0]||new classes.Track(/*"youtube","jHPOzQzk9Qo"*/"filesystem","epicsaxguy.wav"), 'time': 0, 'playing':1});
+  });
+  socket.on('next',function socketNextElement(){
+    //TODO logic for setting next track
+    io.sockets.emit("poll");
   });
 });

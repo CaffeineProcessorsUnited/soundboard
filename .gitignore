@@ -33,5 +33,8 @@ node_modules
 .node_repl_history
 
 # Configurations
-users.json
+config.json
 playlists.json
+
+#Audioformats
+*.wav

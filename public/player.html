@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title> Soundboard Player </title>
+    <style>
+      html{
+        margin: 0px;
+      }
+      body {
+        text-align: center;
+        margin: 0px;
+        padding: 0px;
+      }
+      header{
+        margin: 0px;
+        background-color: #FF4FAF;
+        padding: 10px;
+        color: white;
+      }
+      h1{
+        margin: 0px;
+        font-size: 50px;
+      }
+    </style>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
+    <script>
+      var loadyoutube=false;
+      var player;
+      var socket;
+      var runtime = new (function(undefined){
+        this.path="";
+        this.time=0;
+        this.playing=false;
+        this.service="";
+      });
+      $(document).ready(function(){
+        socket = io();
+        socket.on('get_current_track', function loadCurrentTrack(trackinfo){
+          console.log(JSON.stringify(trackinfo));
+          track = trackinfo["currentTrack"];
+          console.log(JSON.stringify(track));
+          if(track!=undefined){
+            runtime.path = track["path"];
+            runtime.time = trackinfo["time"];
+            runtime.playing = trackinfo["playing"];
+            runtime.service = trackinfo["service"];
+            if(track["service"]=="youtube"){
+                if(!loadyoutube) {
+                  $("#soundboard_player").html('<p>Youtube</p><div id="player"></div>');
+                  var tag = document.createElement('script');
+                  tag.src = "https://www.youtube.com/iframe_api";
+                  var firstScriptTag = document.getElementsByTagName('script')[0];
+                  firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+                  loadyoutube=true;
+                }
+                else {
+                  onYouTubeIframeAPIReady();
+                }
+            }
+            else if (track["service"]=="filesystem"){
+                $("#soundboard_player").html('<p>filesystem</p>');
+                player = document.createElement('audio');
+                player.src = runtime.path;
+                player.controls = true;
+                player.addEventListener("ended",function onEnded(){
+                  socket.emit("next");
+                });
+                player.addEventListener("pause",function onPause(){
+
+                });
+                player.addEventListener("canplay",function onCanPlay(){
+                  if(runtime.playing==true){
+                      player.play();
+                  }
+                });
+                $("#soundboard_player").append(player);
+            }
+            else{
+                $("#soundboard_player").html('<p>What the fuck happend?</p>');
+            }
+          }
+          else{
+              $("#soundboard_player").html('<p>No tracks in queue</p>');
+          }
+        });
+        socket.on('poll', function poll() {
+          socket.emit("get_current_track");
+        });
+        socket.on('get_current_time', function returnCurrentTime(){
+          if(runtime.service == "youtube"){
+            socket.emit('current_Time', {"time":player.getCurrentTime()});
+          }
+          else if (runtime.service=="filesystem"){
+            socket.emit('current_Time', {"time":player.currentTime});
+          }
+          else {
+            console.log("No track playing, no Time to report");
+          }
+        });
+        socket.emit('get_current_track');
+      });
+      function onYouTubeIframeAPIReady() {
+        if(runtime.service=="youtube"){
+          player = new YT.Player('player', {
+            height: '390',
+            width: '640',
+            videoId: runtime.path,
+            events: {
+              'onReady': onPlayerReady,
+              'onStateChange': onPlayerStateChange
+            }
+          });
+        }
+      }
+      function onPlayerReady(event) {
+        if(runtime.playing==true){
+            event.target.playVideo();
+        }
+      }
+      function onPlayerStateChange(event) {
+        if (event.data == YT.PlayerState.PLAYING) {
+        }
+        else if (event.data == YT.PlayerState.PAUSED){
+
+        }
+        else if (event.data == YT.PlayerState.ENDED){
+          socket.emit('next');
+        }
+      }
+      function stopVideo() {
+        player.stopVideo();
+      }
+
+    </script>
+  </head>
+  <body>
+    <header>
+      <h1> Soundboard Player </h1>
+    </header>
+    <div id="soundboard_player">
+    </div>
+  </body>
+</html>

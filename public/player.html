@@ -89,10 +89,10 @@
         });
         socket.on('get_current_time', function returnCurrentTime(){
           if(runtime.service == "youtube"){
-            socket.emit('current_Time':{"time":player.getCurrentTime()});
+            socket.emit('current_Time', {"time":player.getCurrentTime()});
           }
           else if (runtime.service=="filesystem"){
-            socket.emit('current_Time':{"time":player.currentTime});
+            socket.emit('current_Time', {"time":player.currentTime});
           }
           else {
             console.log("No track playing, no Time to report");

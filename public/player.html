@@ -44,7 +44,7 @@
             runtime.path = track["path"];
             runtime.time = trackinfo["time"];
             runtime.playing = trackinfo["playing"];
-            runtime.service = trackinfo["service"];
+            runtime.service = track["service"];
             if(track["service"]=="youtube"){
                 if(!loadyoutube) {
                   $("#soundboard_player").html('<p>Youtube</p><div id="player"></div>');
@@ -63,6 +63,7 @@
                 player = document.createElement('audio');
                 player.src = runtime.path;
                 player.controls = true;
+                player.currentTime = runtime.time;
                 player.addEventListener("ended",function onEnded(){
                   socket.emit("next");
                 });
@@ -91,11 +92,12 @@
           if(runtime.service == "youtube"){
             socket.emit('current_Time', {"time":player.getCurrentTime()});
           }
-          else if (runtime.service=="filesystem"){
+          else if (runtime.service == "filesystem"){
             socket.emit('current_Time', {"time":player.currentTime});
           }
           else {
             console.log("No track playing, no Time to report");
+            console.log(runtime);
           }
         });
         socket.emit('get_current_track');

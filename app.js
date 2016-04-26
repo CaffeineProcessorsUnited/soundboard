@@ -122,6 +122,8 @@ var classes = {
 var runtime = new (function(undefined) {
     this.started = new Date().getTime();
     this.queue = new classes.Queue();
+    this.playback_time = 0;
+    this.playing = true;
     this.playlists = JSON.parse(fs.readFileSync('playlists.json', 'utf8'));
     this.log = function(msg) {
       var caller = callerId.getData();
@@ -256,10 +258,29 @@ io.on('connection', function ioOnConnection(socket) {
   socket.on('get_current_track', function socketCurrentTrack() {
     //runtime.log("Request currentTrack");
     //runtime.log(JSON.stringify(runtime.queue[0]));
-    io.to(socket.id).emit('get_current_track', {'currentTrack': runtime.queue[0]||new classes.Track(/*"youtube","jHPOzQzk9Qo"*/"filesystem","epicsaxguy.wav"), 'time': 0, 'playing':1});
+    io.to(socket.id).emit('get_current_track', {'currentTrack': runtime.queue[0]||new classes.Track(/*"youtube","jHPOzQzk9Qo"*/"filesystem","epicsaxguy.wav"), 'time': runtime.playback_time, 'playing':runtime.playing});
   });
   socket.on('next',function socketNextElement(){
     //TODO logic for setting next track
+    runtime.playback_time=0;
     io.sockets.emit("poll");
+  });
+  socket.on('current_Time',function onCurrentTime(data){
+    runtime.log(data["time"]);
+    runtime.playback_time=data["time"];
+  });
+  socket.on('play',function onPlay(){
+    runtime.log("Play");
+    runtime.playing = true;
+    io.sockets.emit("poll");
+  });
+  socket.on("pause",function onPause(){
+    runtime.log("Pause");
+    runtime.playing = false;
+    io.sockets.emit("get_current_time");
+    io.sockets.emit("poll");
+  });
+  socket.on('isPlaying',function onIsPlaying(){
+    io.to(socket.id).emit('isPlaying', {'playing': runtime.playing});
   });
 });

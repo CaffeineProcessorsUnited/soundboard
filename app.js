@@ -258,12 +258,17 @@ io.on('connection', function ioOnConnection(socket) {
   socket.on('get_current_track', function socketCurrentTrack() {
     //runtime.log("Request currentTrack");
     //runtime.log(JSON.stringify(runtime.queue[0]));
-    io.to(socket.id).emit('get_current_track', {'currentTrack': runtime.queue[0]||new classes.Track(/*"youtube","jHPOzQzk9Qo"*/"filesystem","epicsaxguy.wav"), 'time': runtime.playback_time, 'playing':runtime.playing});
+    io.to(socket.id).emit('get_current_track', {'currentTrack': runtime.queue[0]||new classes.Track("youtube","jHPOzQzk9Qo"/*"filesystem","epicsaxguy.wav"*/), 'time': runtime.playback_time, 'playing':runtime.playing});
   });
   socket.on('next',function socketNextElement(){
     //TODO logic for setting next track
     runtime.playback_time=0;
     io.sockets.emit("poll");
+  });
+  socket.on('prev', function socketPrevElement(){
+    //TODO logic for setting previous track
+    runtime.playback_time=0;
+    io.sockets.emit('poll');
   });
   socket.on('current_Time',function onCurrentTime(data){
     runtime.log(data["time"]);

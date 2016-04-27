@@ -46,8 +46,8 @@
             runtime.playing = trackinfo["playing"];
             runtime.service = track["service"];
             if(track["service"]=="youtube"){
+              $("#soundboard_player").html('<p>Youtube</p><div id="player"></div>');
                 if(!loadyoutube) {
-                  $("#soundboard_player").html('<p>Youtube</p><div id="player"></div>');
                   var tag = document.createElement('script');
                   tag.src = "https://www.youtube.com/iframe_api";
                   var firstScriptTag = document.getElementsByTagName('script')[0];
@@ -56,6 +56,7 @@
                 }
                 else {
                   onYouTubeIframeAPIReady();
+                  console.log("reload");
                 }
             }
             else if (track["service"]=="filesystem"){
@@ -108,6 +109,7 @@
             height: '390',
             width: '640',
             videoId: runtime.path,
+            //startSeconds: runtime.time,
             events: {
               'onReady': onPlayerReady,
               'onStateChange': onPlayerStateChange
@@ -116,7 +118,8 @@
         }
       }
       function onPlayerReady(event) {
-        if(runtime.playing==true){
+        if(runtime.playing==1){
+            event.target.seekTo(runtime.time,false);
             event.target.playVideo();
         }
       }

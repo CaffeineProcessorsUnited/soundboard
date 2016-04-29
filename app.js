@@ -14,7 +14,7 @@ var ioc = require('socket.io-client');
 var debug = true;
 
 // Array Remove - By John Resig (MIT Licensed)
-Array.prototype.remove = function(from, to) {
+Array.prototype.delete = function(from, to) {
   var rest = this.slice(parseInt(to || from) + 1 || this.length);
   this.length = from < 0 ? this.length + from : from;
   return this.push.apply(this, rest);
@@ -27,6 +27,10 @@ Array.prototype.insert = function(item, position) {
     this.push(item);
   }
 };
+
+function randomInt(low, high) {
+  return Math.floor(Math.random * (high - low) + low);
+}
 
 var Class = function(methods) {
   var klass = function() {
@@ -45,9 +49,11 @@ var classes = {
   "Queue": Class({
     initialize: function() {
       this.queue = [];
+      this.currentPos = 0;
+      this.isShuffel = false;
     },
-    add: function(track) {
-      this.queue.insert(track);
+    add: function(track, position) {
+      this.queue.insert(track, position);
     },
     del: function(id) {
       for (var i = 0; i < this.queue.length; i++) {
@@ -68,10 +74,35 @@ var classes = {
       }
     },
 		clear: function() {
-			for (var i = 0; i < this.queue.length; i++) {
-				this.queue.delete(i);
-			}
+      while(this.queue.length > 0) {
+        this.queue.delete(this.queue.length - 1);
+      }
+      this.currentPos = 0;
 		},
+    getCurrentTrack: function() {
+      return this.queue[this.currentPos];
+    },
+    prev: function() {
+      this.currentPos = (this.currentPos + this.queue.length - 1)%this.queue.length;
+    },
+    next: function(position) {
+      if (!!position) {
+        this.currentPos = postion;
+      } else {
+        if(this.isShuffel) {
+          this.currentPos = randomInt(0, this.queue.length);
+        }
+        else {
+          this.currentPos = (this.currentPos +1)%this.queue.length;
+        }
+      }
+    },
+    setShuffle: function(shuffle) {
+      this.isShuffel = shuffle;
+    },
+    getCurrentPosition: function() {
+      return this.currentPos;
+    },
 		loadQueueFromPlaylist: function(name){
 			if(runtime.playlists[name]){
 				this.clear();
@@ -206,13 +237,22 @@ io.on('connection', function ioOnConnection(socket) {
     runtime.socketdata(socket).user = undefined;
   });
   socket.on('add_track', function socketAddTrack(data) {
-    if (!runtime.userLoggedin(socket)) {
-      return;
+    if(!runtime.userLoggedin(socket)) {
+      //return;
     }
-    if (data.track) {
-      var track = data.track;
+    runtime.log(data);
+    if (data["service"] && data['path']){
+      var track = new classes.Track(data['service'],data['path']);
       if (track.service && track.path) {
-        runtime.queue.add(new classes.Track(track.service, track.path, track.time || undefined));
+        if(data["next"]){
+          runtime.queue.add(new classes.Track(track.service, track.path, track.time || undefined),runtime.queue.getCurrentPosition()+1);
+          runtime.queue.next(runtime.queue.getCurrentPosition() + 1);
+          io.sockets.emit('poll');
+        }
+        else {
+          runtime.queue.add(new classes.Track(track.service, track.path, track.time || undefined));
+          io.to(socket.id).emit("poll");
+        }
       } else {
         runtime.log('This doesn\'t seem to be a valid track.');
       }
@@ -239,7 +279,7 @@ io.on('connection', function ioOnConnection(socket) {
     }
   });
   socket.on('get_queue', function socketGetQueue(data) {
-    io.to(socket.id).emit('get_queue', { "queue": runtime.queue.list() });
+    io.to(socket.id).emit('get_queue', { "queue": runtime.queue.list(), "currentTrack": runtime.queue.getCurrentTrack()});
   });
 	socket.on('get_playlist', function(data) {
 		if(data.name){
@@ -254,19 +294,19 @@ io.on('connection', function ioOnConnection(socket) {
 	});
   socket.on('clear_queue', function socketClearQueue() {
     runtime.queue.clear();
+    io.sockets.emit("poll");
   });
   socket.on('get_current_track', function socketCurrentTrack() {
-    //runtime.log("Request currentTrack");
-    //runtime.log(JSON.stringify(runtime.queue[0]));
-    io.to(socket.id).emit('get_current_track', {'currentTrack': runtime.queue[0]||new classes.Track("youtube","jHPOzQzk9Qo"/*"filesystem","epicsaxguy.wav"*/), 'time': runtime.playback_time, 'playing':runtime.playing});
+    io.to(socket.id).emit('get_current_track', {'currentTrack': runtime.queue.getCurrentTrack()/*||new classes.Track("youtube","jHPOzQzk9Qo"/*"filesystem","epicsaxguy.wav")*/, 'time': runtime.playback_time, 'playing':runtime.playing});
   });
   socket.on('next',function socketNextElement(){
-    //TODO logic for setting next track
+    runtime.queue.next();
     runtime.playback_time=0;
+    runtime.playing = true;
     io.sockets.emit("poll");
   });
   socket.on('prev', function socketPrevElement(){
-    //TODO logic for setting previous track
+    runtime.queue.prev();
     runtime.playback_time=0;
     io.sockets.emit('poll');
   });
@@ -283,6 +323,11 @@ io.on('connection', function ioOnConnection(socket) {
     runtime.log("Pause");
     runtime.playing = false;
     io.sockets.emit("get_current_time");
+    io.sockets.emit("poll");
+  });
+  socket.on("stop",function onStop(){
+    runtime.playback_time = 0;
+    runtime.playing = false;
     io.sockets.emit("poll");
   });
   socket.on('isPlaying',function onIsPlaying(){

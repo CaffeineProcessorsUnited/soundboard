@@ -38,3 +38,7 @@ playlists.json
 
 #Audioformats
 *.wav
+*.mp3
+
+#all songs
+songs

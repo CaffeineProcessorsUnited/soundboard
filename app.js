@@ -337,4 +337,7 @@ io.on('connection', function ioOnConnection(socket) {
   socket.on('isPlaying',function onIsPlaying(){
     io.to(socket.id).emit('isPlaying', {'playing': runtime.playing});
   });
+  socket.on('save_queue_to_playlist', function onSaveQueueAsPlaylist(data){
+    runtime.queue.saveQueueAsPlaylist(data.playlistname);
+  });
 });

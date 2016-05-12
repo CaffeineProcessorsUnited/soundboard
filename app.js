@@ -64,6 +64,9 @@ var classes = {
         }
       }
     },
+    get: function(pos){
+      return this.queue[pos];
+    },
     list: function() {
       return this.queue;
     },
@@ -103,12 +106,18 @@ var classes = {
     getCurrentPosition: function() {
       return this.currentPos;
     },
+    setCurrentPosition: function(pos){
+      this.currentPos=pos;
+    },
 		loadQueueFromPlaylist: function(name) {
-			if (runtime.playlists[name]) {
+			if (runtime.playlists[name]){
+        var self = this;
 				this.clear();
+          this.currentPos = 0;
 				runtime.playlists[name].tracks.forEach(function(trackinfo) {
-					this.add(new classes.Track(trackinfo.service, trackinfo.path));
+					self.add(new classes.Track(trackinfo.service, trackinfo.path));
 				});
+        console.log(this.queue);
 			}
 		},
 		saveQueueAsPlaylist: function(name) {
@@ -283,7 +292,7 @@ io.on('connection', function ioOnConnection(socket) {
             runtime.log('Invalid url path. The file must be a http ot https url!');
           }
         }
-        if(data["next"]) {
+        if(data["next"]){
           runtime.queue.add(new classes.Track(track.service, track.path, track.time || undefined),runtime.queue.getCurrentPosition() + 1);
           runtime.queue.next(runtime.queue.getCurrentPosition() + 1);
           io.sockets.emit('poll');
@@ -376,5 +385,26 @@ io.on('connection', function ioOnConnection(socket) {
   });
   socket.on('getFiles', function getFiles() {
     io.to(socket.id).emit('getFiles', {'files': runtime.getFiles()});
+  });
+  socket.on('playPlaylist', function onPlayPlaylist(data){
+    if(data.name != '' && data.playing){
+        runtime.log(data.name);
+        runtime.queue.loadQueueFromPlaylist(data.name);
+        runtime.playback_time = 0;
+        runtime.playing = data.playing;
+        runtime.log(runtime.queue.list());
+        io.sockets.emit('poll');
+    }
+  });
+  socket.on('playtrack', function onPlaySelectedTrack(data){
+    if(data.id){
+      for(var i=0;i<runtime.queue.list().length;i++){
+        if(runtime.queue.get(i).getId()==data.id){
+          runtime.queue.setCurrentPosition(i);
+          io.sockets.emit("poll");
+          break;
+        }
+      }
+    }
   });
 });

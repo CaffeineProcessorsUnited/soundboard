@@ -87,7 +87,7 @@ var classes = {
     },
     next: function(position) {
       if (!!position) {
-        this.currentPos = postion;
+        this.currentPos = position;
       } else {
         if(this.isShuffel) {
           this.currentPos = randomInt(0, this.queue.length);
@@ -244,10 +244,14 @@ io.on('connection', function ioOnConnection(socket) {
     if (data["service"] && data['path']){
       var track = new classes.Track(data['service'],data['path']);
       if (track.service && track.path) {
-        if(data["next"]){
-          runtime.queue.add(new classes.Track(track.service, track.path, track.time || undefined),runtime.queue.getCurrentPosition()+1);
-          runtime.queue.next(runtime.queue.getCurrentPosition() + 1);
-          io.sockets.emit('poll');
+        if(data["next"]==true){
+          if(runtime.queue.list().length!=0){
+              runtime.queue.next(runtime.queue.getCurrentPosition() + 1);
+          }
+          runtime.log(runtime.queue.getCurrentPosition());
+          runtime.queue.add(new classes.Track(track.service, track.path, track.time || undefined),runtime.queue.getCurrentPosition());
+          runtime.playing = true;
+          io.sockets.emit("poll");
         }
         else {
           runtime.queue.add(new classes.Track(track.service, track.path, track.time || undefined));
@@ -282,8 +286,8 @@ io.on('connection', function ioOnConnection(socket) {
     io.to(socket.id).emit('get_queue', { "queue": runtime.queue.list(), "currentTrack": runtime.queue.getCurrentTrack()});
   });
 	socket.on('get_playlist', function(data) {
-		if(data.name){
-			io.to(socket.id).emit('get_playlist', { "tracks": runtime.playlists[data.name].tracks});
+		if(data["name"]){
+			io.to(socket.id).emit('get_playlist_tracks', { "tracks": runtime.playlists[data['name']].tracks});
 		} else {
 			var playlistnames = [];
 			for (var key in runtime.playlists) {

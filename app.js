@@ -51,7 +51,8 @@ var classes = {
     initialize: function() {
       this.queue = [];
       this.currentPos = 0;
-      this.isShuffel = false;
+      this.isShuffle = false;
+      this.isRepeat = false;
     },
     add: function(track, position) {
       this.queue.insert(track, position);
@@ -100,8 +101,17 @@ var classes = {
         }
       }
     },
+    getShuffle: function(){
+      return this.isShuffle;
+    },
     setShuffle: function(shuffle) {
-      this.isShuffel = shuffle;
+      this.isShuffle = shuffle;
+    },
+    getRepeat: function(){
+      return this.isRepeat;
+    },
+    setRepeat: function(repeat){
+      this.isRepeat = repeat;
     },
     getCurrentPosition: function() {
       return this.currentPos;
@@ -117,7 +127,6 @@ var classes = {
 				runtime.playlists[name].tracks.forEach(function(trackinfo) {
 					self.add(new classes.Track(trackinfo.service, trackinfo.path));
 				});
-        console.log(this.queue);
 			}
 		},
 		saveQueueAsPlaylist: function(name) {
@@ -326,7 +335,8 @@ io.on('connection', function ioOnConnection(socket) {
     }
   });
   socket.on('get_queue', function socketGetQueue(data) {
-    io.to(socket.id).emit('get_queue', { "queue": runtime.queue.list(), "currentTrack": runtime.queue.getCurrentTrack()});
+    //runtime.log({ "queue": runtime.queue.list(), "currentTrack": runtime.queue.getCurrentTrack(), "repeat": runtime.queue.getRepeat(), "shuffle": runtime.queue.getShuffle() });
+    io.to(socket.id).emit('get_queue', { "queue": runtime.queue.list(), "currentTrack": runtime.queue.getCurrentTrack(), "repeat": runtime.queue.getRepeat(), "shuffle": runtime.queue.getShuffle() });
   });
 	socket.on('get_playlist', function(data) {
 		if(data["name"]){
@@ -344,7 +354,7 @@ io.on('connection', function ioOnConnection(socket) {
     io.sockets.emit("poll");
   });
   socket.on('get_current_track', function socketCurrentTrack() {
-    io.to(socket.id).emit('get_current_track', {'currentTrack': runtime.queue.getCurrentTrack()/*||new classes.Track("youtube","jHPOzQzk9Qo"/*"filesystem","epicsaxguy.wav")*/, 'time': runtime.playback_time, 'playing':runtime.playing});
+    io.to(socket.id).emit('get_current_track', {'currentTrack': runtime.queue.getCurrentTrack(), 'time': runtime.playback_time, 'playing':runtime.playing});
   });
   socket.on('next',function socketNextElement() {
     runtime.queue.next();
@@ -388,11 +398,9 @@ io.on('connection', function ioOnConnection(socket) {
   });
   socket.on('playPlaylist', function onPlayPlaylist(data){
     if(data.name != '' && data.playing){
-        runtime.log(data.name);
         runtime.queue.loadQueueFromPlaylist(data.name);
         runtime.playback_time = 0;
         runtime.playing = data.playing;
-        runtime.log(runtime.queue.list());
         io.sockets.emit('poll');
     }
   });
@@ -400,11 +408,19 @@ io.on('connection', function ioOnConnection(socket) {
     if(data.id){
       for(var i=0;i<runtime.queue.list().length;i++){
         if(runtime.queue.get(i).getId()==data.id){
+          runtime.playback_time=0;
+          runtime.playing = true;
           runtime.queue.setCurrentPosition(i);
           io.sockets.emit("poll");
           break;
         }
       }
     }
+  });
+  socket.on('toggleShuffle', function onToggleShuffle(){
+    runtime.queue.setShuffle(!runtime.queue.getShuffle());
+  });
+  socket.on('toggleRepeat', function onToggleRepeat(){
+    runtime.queue.setRepeat(!runtime.queue.getRepeat());
   });
 });

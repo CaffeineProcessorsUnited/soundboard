@@ -22,7 +22,10 @@ Array.prototype.delete = function(from, to) {
 };
 
 Array.prototype.insert = function(item, position) {
-  if (!!position) {
+  if (position!=undefined) {
+    if(position<0){
+      position = 0;
+    }
     this.splice(position, 0, item);
   } else {
     this.push(item);
@@ -317,14 +320,10 @@ io.on('connection', function ioOnConnection(socket) {
     }
   });
   socket.on('delete_track', function socketDeleteTrack(data) {
-    if (data.track) {
-      if (data.track.id) {
-        runtime.queue.del(data.track.id);
-      } else {
-        runtime.log('This track seems to be missing a id.');
-      }
+    if (data.id) {
+      runtime.queue.del(data.id);
     } else {
-      runtime.log('What do you want from me?');
+      runtime.log('This track seems to be missing a id.');
     }
   });
   socket.on('reorder_track', function socketReorderTrack(data) {
@@ -422,5 +421,19 @@ io.on('connection', function ioOnConnection(socket) {
   });
   socket.on('toggleRepeat', function onToggleRepeat(){
     runtime.queue.setRepeat(!runtime.queue.getRepeat());
+  });
+  socket.on('chpos_of_track', function onChangeTrackPos(data){
+    runtime.log(data)
+    if(data.id && data.newpos!=undefined){
+      var track;
+      for(var i=0;i<runtime.queue.list().length;i++){
+        if(runtime.queue.get(i).getId()==data.id){
+          track = runtime.queue.get(i);
+          break;
+        }
+      }
+      runtime.queue.del(data.id);
+      runtime.queue.add(track, data.newpos);
+    }
   });
 });

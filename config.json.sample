@@ -1,5 +1,5 @@
 {
-  "services": {
+  "interfaces": {
     "ts3": {
       "name": "Teamspeak 3"
     },
@@ -7,17 +7,38 @@
       "name": "Discord"
     }
   },
+  "services": {
+    "youtube": {
+      "name": "YouTube",
+      "icon": "youtube-play"
+    },
+    "filesystem": {
+      "name": "Filesystem",
+      "icon": "folder",
+      "prefix": "songs/filesystem/"
+    },
+    "url": {
+      "name": "URL",
+      "icon": "link"
+    },
+    "soundcloud": {
+      "name": "SoundCloud",
+      "icon": "soundcloud",
+      "apikey": "htuiRd1JP11Ww0X72T1C3g"
+    }
+  },
   "users": {
     "0": {
       "name": "Admin",
-      "password": "admin",
+      "login": "admin",
+      "password": "4dm1n",
       "accounts": [
         {
-          "service": "ts3",
+          "interface": "ts3",
           "id": "0123456789ABCDEF"
         },
         {
-          "service": "discord",
+          "interface": "discord",
           "id": "0123456789ABCDEF"
         }
       ]

@@ -179,6 +179,7 @@ var runtime = new (function(undefined) {
     this.queue = new classes.Queue();
     this.playback_time = 0;
     this.playing = false;
+    this.config = JSON.parse(fs.readFileSync('config.json', 'utf8'));
     this.playlists = JSON.parse(fs.readFileSync('playlists.json', 'utf8'));
     this.log = function(msg) {
       var caller = callerId.getData();
@@ -289,6 +290,9 @@ io.on('connection', function ioOnConnection(socket) {
     runtime.socketdata(socket).user.authenticated = true;
     runtime.socketdata(socket).user = undefined;
   });
+  socket.on('get_config', function() {
+    io.to(socket.id).emit("get_config", runtime.config);
+  });
   socket.on('add_track', function socketAddTrack(data) {
     if(!runtime.userLoggedin(socket)) {
       //return;
@@ -365,29 +369,25 @@ io.on('connection', function ioOnConnection(socket) {
 	});
   socket.on('clear_queue', function socketClearQueue() {
     runtime.queue.clear();
+    runtime.playback_time = 0;
     io.sockets.emit("poll");
   });
   socket.on('get_current_track', function socketCurrentTrack() {
-    track = runtime.queue.getCurrentTrack();
-    if (track["service"] == "filesystem") {
-      track["path"] = path.relative('./public/songs/filesystem/', path.resolve('./public/songs/filesystem/', track["path"]));
-    }
-    io.to(socket.id).emit('get_current_track', {'currentTrack': track, 'time': runtime.playback_time, 'playing': runtime.playing});
+    io.to(socket.id).emit('get_current_track', {'currentTrack': runtime.queue.getCurrentTrack(), 'time': runtime.playback_time, 'playing': runtime.playing});
   });
   socket.on('next',function socketNextElement() {
     runtime.queue.next();
-    runtime.playback_time=0;
-    runtime.playing = true;
+    runtime.playback_time = 0;
     io.sockets.emit("poll");
   });
   socket.on('prev', function socketPrevElement() {
     runtime.queue.prev();
-    runtime.playback_time=0;
+    runtime.playback_time = 0;
     io.sockets.emit('poll');
   });
   socket.on('current_Time', function onCurrentTime(data) {
     runtime.log(data["time"]);
-    runtime.playback_time=data["time"];
+    runtime.playback_time = data["time"];
   });
   socket.on('play', function onPlay() {
     runtime.log("Play");

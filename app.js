@@ -311,15 +311,14 @@ io.on('connection', function ioOnConnection(socket) {
             return;
           }
         }
-        if(data["next"]){
-          runtime.queue.add(new classes.Track(track.service, track.path, track.time || undefined),runtime.queue.getCurrentPosition() + 1);
-          runtime.queue.next(runtime.queue.getCurrentPosition() + 1);
+        if(data["next"]) {
+          var pos = runtime.queue.isEmpty() ? 0 : runtime.queue.getCurrentPosition() + 1;
+          runtime.queue.add(new classes.Track(track.service, track.path, track.time || undefined), pos);
+          runtime.queue.next(pos);
           runtime.playing = true;
           io.sockets.emit("poll");
         } else {
           var empty = runtime.queue.isEmpty();
-          runtime.log(empty ? "true" : "false");
-          runtime.log(runtime.playing ? "true" : "false");
           runtime.queue.add(new classes.Track(track.service, track.path, track.time || undefined));
           if (empty) {
             io.sockets.emit('poll');

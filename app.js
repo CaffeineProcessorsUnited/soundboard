@@ -88,7 +88,7 @@ var classes = {
       this.currentPos = -1;
 		},
     getCurrentTrack: function() {
-      return this.queue[this.currentPos];
+      return (this.currentPos >= 0 && this.currentPos < this.queue.length) ? this.queue[this.currentPos] : undefined;
     },
     isEmpty: function() {
       return this.queue.length == 0;
@@ -369,7 +369,7 @@ io.on('connection', function ioOnConnection(socket) {
     io.sockets.emit("poll");
   });
   socket.on('get_current_track', function socketCurrentTrack() {
-    io.to(socket.id).emit('get_current_track', {'currentTrack': runtime.queue.getCurrentTrack(), 'time': runtime.playback_time, 'playing':runtime.playing});
+    io.to(socket.id).emit('get_current_track', {'currentTrack': runtime.queue.getCurrentTrack(), 'time': runtime.playback_time, 'playing': runtime.playing});
   });
   socket.on('next',function socketNextElement() {
     runtime.queue.next();
@@ -389,13 +389,17 @@ io.on('connection', function ioOnConnection(socket) {
   socket.on('play', function onPlay() {
     runtime.log("Play");
     runtime.playing = true;
-    io.sockets.emit("poll");
+    if (runtime.queue.getCurrentTrack() !== undefined) {
+      io.sockets.emit("poll");
+    }
   });
   socket.on("pause", function onPause() {
     runtime.log("Pause");
     runtime.playing = false;
-    io.sockets.emit("get_current_time");
-    io.sockets.emit("poll");
+    if (runtime.queue.getCurrentTrack() !== undefined) {
+      io.sockets.emit("get_current_time");
+      io.sockets.emit("poll");
+    }
   });
   socket.on("stop", function onStop() {
     runtime.playback_time = 0;

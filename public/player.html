@@ -34,9 +34,35 @@
         this.playing=false;
         this.service="";
       });
+      function objequal(a, b) {
+        if (typeof a === "object" && typeof b === "object") {
+          for (var k in a) {
+            if (a.hasOwnProperty(k)) {
+              if (b.hasOwnProperty(k)) {
+                if (!objequal(a[k], b[k])) {
+                  return false;
+                }
+              } else {
+                return false;
+              }
+            }
+          }
+        } else {
+          if (a != b) {
+            return false;
+          }
+        }
+        return true;
+      }
       $(document).ready(function() {
         socket = io();
+        var oldtrackinfo;
         socket.on('get_current_track', function loadCurrentTrack(trackinfo) {
+          if (objequal(oldtrackinfo, trackinfo)) {
+            console.log("same track! just continue...");
+            return;
+          }
+          oldtrackinfo = trackinfo;
           console.log("trackinfo");
           console.log(JSON.stringify(trackinfo));
           track = trackinfo["currentTrack"];

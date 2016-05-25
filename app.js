@@ -64,7 +64,7 @@ var classes = {
       for (var i = 0; i < this.queue.length; i++) {
         if (this.queue[i].getId() == id) {
           this.queue.delete(i);
-          break;
+          return i;
         }
       }
     },
@@ -89,6 +89,9 @@ var classes = {
 		},
     getCurrentTrack: function() {
       return this.queue[this.currentPos];
+    },
+    isEmpty: function() {
+      return this.queue.length == 0;
     },
     prev: function() {
       this.currentPos = (this.currentPos + this.queue.length - 1)%this.queue.length;
@@ -175,7 +178,7 @@ var runtime = new (function(undefined) {
     this.started = new Date().getTime();
     this.queue = new classes.Queue();
     this.playback_time = 0;
-    this.playing = true;
+    this.playing = false;
     this.playlists = JSON.parse(fs.readFileSync('playlists.json', 'utf8'));
     this.log = function(msg) {
       var caller = callerId.getData();
@@ -297,19 +300,30 @@ io.on('connection', function ioOnConnection(socket) {
         if (track.service == "filesystem") {
           if (!path.resolve('./public/songs', track.path).startsWith(path.resolve('./public/songs') + '/')) {
             runtime.log('Invalid file path. The file must be inside the songs directory!');
+            return;
           }
+          track.path = path.relative('./public/', path.resolve('./public/songs/filesystem/', track.path));
+          runtime.log('thsi is cool: ' + track.path);
         }
         if (track.service == "url") {
           if (!track.path.startsWith('http')) {
             runtime.log('Invalid url path. The file must be a http ot https url!');
+            return;
           }
         }
         if(data["next"]){
           runtime.queue.add(new classes.Track(track.service, track.path, track.time || undefined),runtime.queue.getCurrentPosition() + 1);
           runtime.queue.next(runtime.queue.getCurrentPosition() + 1);
-          io.sockets.emit('poll');
+          runtime.playing = true;
+          io.sockets.emit("poll");
         } else {
+          var empty = runtime.queue.isEmpty();
+          runtime.log(empty ? "true" : "false");
+          runtime.log(runtime.playing ? "true" : "false");
           runtime.queue.add(new classes.Track(track.service, track.path, track.time || undefined));
+          if (empty) {
+            io.sockets.emit('poll');
+          }
         }
         io.to(socket.id).emit("poll");
       } else {
@@ -321,7 +335,10 @@ io.on('connection', function ioOnConnection(socket) {
   });
   socket.on('delete_track', function socketDeleteTrack(data) {
     if (data.id) {
-      runtime.queue.del(data.id);
+      var i = runtime.queue.del(data.id);
+      if (i == runtime.queue.getCurrentPosition()) {
+        io.sockets.emit('poll');
+      }
     } else {
       runtime.log('This track seems to be missing a id.');
     }

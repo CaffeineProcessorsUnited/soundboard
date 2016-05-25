@@ -3,7 +3,8 @@
       "tracks":[
           {
               "service": "youtube",
-              "path": "file"
+              "path": "file",
+              "id": "id"
           }
       ]
     }

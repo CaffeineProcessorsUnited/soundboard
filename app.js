@@ -110,31 +110,31 @@ var classes = {
         }
       }
     },
-    getShuffle: function(){
+    getShuffle: function() {
       return this.isShuffle;
     },
     setShuffle: function(shuffle) {
       this.isShuffle = shuffle;
     },
-    getRepeat: function(){
+    getRepeat: function() {
       return this.isRepeat;
     },
-    setRepeat: function(repeat){
+    setRepeat: function(repeat) {
       this.isRepeat = repeat;
     },
     getCurrentPosition: function() {
       return this.currentPos;
     },
-    setCurrentPosition: function(pos){
+    setCurrentPosition: function(pos) {
       this.currentPos=pos;
     },
 		loadQueueFromPlaylist: function(name) {
-			if (runtime.playlists[name]){
+			if (runtime.playlists[name]) {
         var self = this;
 				this.clear();
           this.currentPos = 0;
 				runtime.playlists[name].tracks.forEach(function(trackinfo) {
-					self.add(new classes.Track(trackinfo.service, trackinfo.path));
+					self.add(new classes.Track(trackinfo.service, trackinfo.path, {id: trackinfo.id}));
 				});
 			}
 		},
@@ -143,8 +143,9 @@ var classes = {
 				tracks: []
 			}
 			this.queue.forEach(function(track) {
-				var trackinfo={
-					service: track.getService(),
+				var trackinfo = {
+					id: track.getId(),
+  				service: track.getService(),
 					path:	track.getPath()
 				};
 				runtime.playlists[name].tracks.insert(trackinfo);
@@ -153,11 +154,11 @@ var classes = {
 		}
   }),
   "Track": Class({
-    initialize: function(service, path, time) {
+    initialize: function(service, path, options) {
       this.service = service;
       this.path = path;
-      this.time = time || new Date().getTime();
-      this.id = crypto.createHash('sha1').update(this.service + '-' + this.time + '-' + this.path, 'utf8').digest('hex');
+      this.time = (!!options && !!options["time"]) ? options["time"] : new Date().getTime();
+      this.id = (!!options && !!options["id"]) ? options["id"] : crypto.createHash('sha1').update(this.service + '-' + this.time + '-' + this.path, 'utf8').digest('hex');
     },
     getService: function() {
       return this.service;
@@ -302,7 +303,7 @@ io.on('connection', function ioOnConnection(socket) {
     }
     runtime.log(data);
     if (data["service"] && data['path']) {
-      var track = new classes.Track(data['service'],data['path']);
+      var track = new classes.Track(data['service'], data['path']);
       if (track.service && track.path) {
         if (track.service == "filesystem") {
           if (!path.resolve('./public/songs', track.path).startsWith(path.resolve('./public/songs') + '/')) {
@@ -319,13 +320,13 @@ io.on('connection', function ioOnConnection(socket) {
         }
         if(data["next"]) {
           var pos = runtime.queue.isEmpty() ? 0 : runtime.queue.getCurrentPosition() + 1;
-          runtime.queue.add(new classes.Track(track.service, track.path, track.time || undefined), pos);
+          runtime.queue.add(new classes.Track(track.service, track.path, {time: track.time || undefined}), pos);
           runtime.queue.next(pos);
           runtime.playing = true;
           io.sockets.emit("poll");
         } else {
           var empty = runtime.queue.isEmpty();
-          runtime.queue.add(new classes.Track(track.service, track.path, track.time || undefined));
+          runtime.queue.add(new classes.Track(track.service, track.path, {time: track.time || undefined}));
           if (empty) {
             io.sockets.emit('poll');
           }
@@ -437,7 +438,7 @@ io.on('connection', function ioOnConnection(socket) {
   socket.on('playtrack', function onPlaySelectedTrack(data){
     if(data.id){
       for(var i=0;i<runtime.queue.list().length;i++){
-        if(runtime.queue.get(i).getId()==data.id){
+        if(runtime.queue.get(i).getId() == data.id){
           runtime.playback_time=0;
           runtime.playing = true;
           runtime.queue.setCurrentPosition(i);
@@ -458,7 +459,7 @@ io.on('connection', function ioOnConnection(socket) {
     if(data.id && data.newpos!=undefined){
       var track;
       for(var i=0;i<runtime.queue.list().length;i++){
-        if(runtime.queue.get(i).getId()==data.id){
+        if(runtime.queue.get(i).getId() == data.id){
           track = runtime.queue.get(i);
           break;
         }

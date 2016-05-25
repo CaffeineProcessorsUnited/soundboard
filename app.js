@@ -302,8 +302,7 @@ io.on('connection', function ioOnConnection(socket) {
             runtime.log('Invalid file path. The file must be inside the songs directory!');
             return;
           }
-          track.path = path.relative('./public/', path.resolve('./public/songs/filesystem/', track.path));
-          runtime.log('thsi is cool: ' + track.path);
+          track.path = path.relative('./public/songs/filesystem/', path.resolve('./public/songs/filesystem/', track.path));
         }
         if (track.service == "url") {
           if (!track.path.startsWith('http')) {
@@ -369,7 +368,11 @@ io.on('connection', function ioOnConnection(socket) {
     io.sockets.emit("poll");
   });
   socket.on('get_current_track', function socketCurrentTrack() {
-    io.to(socket.id).emit('get_current_track', {'currentTrack': runtime.queue.getCurrentTrack(), 'time': runtime.playback_time, 'playing': runtime.playing});
+    track = runtime.queue.getCurrentTrack();
+    if (track["service"] == "filesystem") {
+      track["path"] = path.relative('./public/songs/filesystem/', path.resolve('./public/songs/filesystem/', track["path"]));
+    }
+    io.to(socket.id).emit('get_current_track', {'currentTrack': track, 'time': runtime.playback_time, 'playing': runtime.playing});
   });
   socket.on('next',function socketNextElement() {
     runtime.queue.next();

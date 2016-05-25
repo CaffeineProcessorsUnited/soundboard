@@ -73,7 +73,7 @@
             runtime.time = trackinfo["time"];
             runtime.playing = trackinfo["playing"];
             runtime.service = track["service"];
-            if (track["service"] == "youtube"){
+            if (runtime.service == "youtube"){
               $("#soundboard_player").html('<p>Youtube</p><div id="player"></div>');
                 if (!loadyoutube) {
                   var tag = document.createElement('script');
@@ -85,25 +85,55 @@
                   onYouTubeIframeAPIReady();
                   console.log("reload");
                 }
-            } else if (track["service"] == "filesystem" || track["service"] == "url") {
-                $("#soundboard_player").html('<p>' + track["service"] + '</p>');
-                player = document.createElement('audio');
-                player.src = runtime.path;
-                player.controls = true;
-                player.currentTime = runtime.time;
-                player.addEventListener("ended",function onEnded() {
+            } else if (runtime.service == "filesystem" || runtime.service == "url") {
+              $("#soundboard_player").html('<p>' + runtime.service + '</p>');
+              player = document.createElement('audio');
+              player.src = runtime.path;
+              player.controls = true;
+              player.currentTime = runtime.time;
+              player.addEventListener("ended",function onEnded() {
+                socket.emit("next");
+              });
+              player.addEventListener("pause",function onPause() {
+                player.play();
+              });
+              player.addEventListener("canplay",function onCanPlay() {
+                if (runtime.playing == true) {
+                    player.play();
+                }
+              });
+              $("#soundboard_player").append(player);
+            } else if (runtime.service == "soundcloud") {
+              $("#soundboard_player").html('<p>' + track["service"] + '</p>');
+              scapikey = 'htuiRd1JP11Ww0X72T1C3g';
+              url = window.location.protocol + '//api.soundcloud.com/resolve?format=json&consumer_key=' + scapikey + '&url=' + encodeURIComponent(runtime.path);
+              $.get(url, function(data) {
+                if (!!data["stream_url"] && !!data["streamable"]) {
+                  player = document.createElement('audio');
+                  player.src = data["stream_url"] + (/\?/.test(data["stream_url"]) ? '&' : '?') + 'consumer_key=' + scapikey;
+                  player.controls = true;
+                  player.currentTime = runtime.time;
+                  player.addEventListener("ended",function onEnded() {
+                    socket.emit("next");
+                  });
+                  player.addEventListener("pause",function onPause() {
+                    player.play();
+                  });
+                  player.addEventListener("canplay",function onCanPlay() {
+                    if (runtime.playing == true) {
+                        player.play();
+                    }
+                  });
+                  $("#soundboard_player").append(player);
+                } else {
                   socket.emit("next");
-                });
-                player.addEventListener("pause",function onPause() {
+                }
+              }).fail(function() {
+                socket.emit("next");
+              });
 
-                });
-                player.addEventListener("canplay",function onCanPlay() {
-                  if(runtime.playing==true) {
-                      player.play();
-                  }
-                });
-                $("#soundboard_player").append(player);
-            } else{
+              $("#soundboard_player").append(player);
+            } else {
                 $("#soundboard_player").html('<p>What the fuck happend?</p>');
             }
           } else {
@@ -124,9 +154,9 @@
         });
         socket.on('get_current_time', function returnCurrentTime() {
           if (runtime.service == "youtube") {
-            socket.emit('current_Time', {"time":player.getCurrentTime()});
+            socket.emit('current_Time', {"time": player.getCurrentTime()});
           } else if (runtime.service == "filesystem") {
-            socket.emit('current_Time', {"time":player.currentTime});
+            socket.emit('current_Time', {"time": player.currentTime});
           } else {
             console.log("no track playing, no time to report");
             console.log(runtime);

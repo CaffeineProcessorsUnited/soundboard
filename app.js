@@ -53,7 +53,7 @@ var classes = {
   "Queue": Class({
     initialize: function() {
       this.queue = [];
-      this.currentPos = 0;
+      this.currentPos = -1;
       this.isShuffle = false;
       this.isRepeat = false;
     },
@@ -64,6 +64,9 @@ var classes = {
       for (var i = 0; i < this.queue.length; i++) {
         if (this.queue[i].getId() == id) {
           this.queue.delete(i);
+          if (this.isEmpty()) {
+            this.currentPos = -1;
+          }
           return i;
         }
       }
@@ -337,8 +340,12 @@ io.on('connection', function ioOnConnection(socket) {
   });
   socket.on('delete_track', function socketDeleteTrack(data) {
     if (data.id) {
+      current = runtime.queue.getCurrentPosition();
       var i = runtime.queue.del(data.id);
-      if (i == runtime.queue.getCurrentPosition()) {
+      if (runtime.queue.isEmpty()) {
+        runtime.playing = false;
+      }
+      if (current == i) {
         io.sockets.emit('poll');
       }
     } else {
@@ -370,6 +377,7 @@ io.on('connection', function ioOnConnection(socket) {
   socket.on('clear_queue', function socketClearQueue() {
     runtime.queue.clear();
     runtime.playback_time = 0;
+    runtime.playing = false;
     io.sockets.emit("poll");
   });
   socket.on('get_current_track', function socketCurrentTrack() {

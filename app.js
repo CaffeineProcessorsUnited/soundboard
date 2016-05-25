@@ -133,8 +133,8 @@ var classes = {
         var self = this;
 				this.clear();
           this.currentPos = 0;
-				runtime.playlists[name].tracks.forEach(function(trackinfo) {
-					self.add(new classes.Track(trackinfo.service, trackinfo.path, {id: trackinfo.id}));
+				runtime.playlists[name].tracks.forEach(function(trackinfo, i) {
+					self.add(new classes.Track(trackinfo.service, trackinfo.path, {idx: i}));
 				});
 			}
 		},
@@ -144,7 +144,6 @@ var classes = {
 			}
 			this.queue.forEach(function(track) {
 				var trackinfo = {
-					id: track.getId(),
   				service: track.getService(),
 					path:	track.getPath()
 				};
@@ -158,7 +157,7 @@ var classes = {
       this.service = service;
       this.path = path;
       this.time = (!!options && !!options["time"]) ? options["time"] : new Date().getTime();
-      this.id = (!!options && !!options["id"]) ? options["id"] : crypto.createHash('sha1').update(this.service + '-' + this.time + '-' + this.path, 'utf8').digest('hex');
+      this.id = (!!options && !!options["id"]) ? options["id"] : crypto.createHash('sha1').update(this.service + '-' + this.time + '-' + this.path + ((!!options && !!options["idx"]) ? '-' + options["idx"] : ''), 'utf8').digest('hex');
     },
     getService: function() {
       return this.service;

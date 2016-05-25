@@ -132,7 +132,7 @@ var classes = {
 			if (runtime.playlists[name]) {
         var self = this;
 				this.clear();
-          this.currentPos = 0;
+        this.currentPos = 0;
 				runtime.playlists[name].tracks.forEach(function(trackinfo, i) {
 					self.add(new classes.Track(trackinfo.service, trackinfo.path, {idx: i}));
 				});
@@ -293,6 +293,9 @@ io.on('connection', function ioOnConnection(socket) {
     runtime.socketdata(socket).user.authenticated = true;
     runtime.socketdata(socket).user = undefined;
   });
+  socket.on('update', function() {
+    io.to(socket.id).emit("poll");
+  });
   socket.on('get_config', function() {
     io.to(socket.id).emit("get_config", runtime.config);
   });
@@ -422,6 +425,14 @@ io.on('connection', function ioOnConnection(socket) {
   });
   socket.on('save_queue_to_playlist', function onSaveQueueAsPlaylist(data){
     runtime.queue.saveQueueAsPlaylist(data.playlistname);
+    io.sockets.emit("poll");
+  });
+  socket.on('delete_playlist', function socketDeletePlaylist(data){
+    if (!!runtime.playlists[data.name]) {
+      delete runtime.playlists[data.name];
+      fs.writeFile('playlists.json', JSON.stringify(runtime.playlists), 'utf-8');
+      io.sockets.emit("poll");
+    }
   });
   socket.on('getFiles', function getFiles() {
     io.to(socket.id).emit('getFiles', {'files': runtime.getFiles()});

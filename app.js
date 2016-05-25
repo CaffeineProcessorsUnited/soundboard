@@ -367,8 +367,8 @@ io.on('connection', function ioOnConnection(socket) {
     io.to(socket.id).emit('get_queue', { "queue": runtime.queue.list(), "currentTrack": runtime.queue.getCurrentTrack(), "repeat": runtime.queue.getRepeat(), "shuffle": runtime.queue.getShuffle() });
   });
 	socket.on('get_playlist', function(data) {
-		if(data["name"]){
-			io.to(socket.id).emit('get_playlist_tracks', { "tracks": runtime.playlists[data['name']].tracks});
+		if(!!data["name"]) {
+			io.to(socket.id).emit('get_playlist_tracks', { "playlist": data["name"], "tracks": runtime.playlists[data['name']].tracks});
 		} else {
 			var playlistnames = [];
 			for (var key in runtime.playlists) {

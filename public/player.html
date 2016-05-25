@@ -63,6 +63,7 @@
         var oldtrackinfo;
         socket.on('get_config', function getConfig(config) {
           runtime.config = config;
+          socket.emit('get_current_track');
         });
         socket.on('get_current_track', function loadCurrentTrack(trackinfo) {
           if (objequal(oldtrackinfo, trackinfo)) {
@@ -185,7 +186,6 @@
           }
         });
         socket.emit('get_config');
-        socket.emit('get_current_track');
       });
       function onYouTubeIframeAPIReady() {
         if (runtime.service=="youtube") {

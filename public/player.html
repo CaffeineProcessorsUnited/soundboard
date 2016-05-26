@@ -29,17 +29,7 @@
       var loadyoutube=false;
       var player;
       var socket;
-      var runtime = new (function(socket, undefined) {
-        this.config = {};
-        this.path="";
-        this.time=0;
-        this.playing=false;
-        this.service="";
-        this.log = function(string) {
-          socket.emit("log", { 'log': window.util.format(string) });
-          console.log(string);
-        }
-      })(socket);
+      var runtime;
       function objequal(a, b) {
         return subobjequal(a, b) && subobjequal(b, a);
       }
@@ -65,6 +55,17 @@
       }
       $(document).ready(function() {
         socket = io();
+        runtime = new (function(socket, undefined) {
+          this.config = {};
+          this.path="";
+          this.time=0;
+          this.playing=false;
+          this.service="";
+          this.log = function(string) {
+            socket.emit("log", { 'log': window.util.format(string) });
+            console.log(string);
+          }
+        })(socket);
         var oldtrackinfo;
         socket.on('get_config', function getConfig(config) {
           runtime.config = config;

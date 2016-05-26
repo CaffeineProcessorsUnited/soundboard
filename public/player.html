@@ -24,17 +24,22 @@
     </style>
     <script src="/socket.io/socket.io.js"></script>
     <script src="/assets/js/jquery.min.js"></script>
+    <script src="/assets/js/util.min.js"></script>
     <script>
       var loadyoutube=false;
       var player;
       var socket;
-      var runtime = new (function(undefined) {
+      var runtime = new (function(socket, undefined) {
         this.config = {};
         this.path="";
         this.time=0;
         this.playing=false;
         this.service="";
-      });
+        this.log = function(string) {
+          socket.emit("log", { 'log': window.util.format(string) });
+          console.log(string);
+        }
+      })(socket);
       function objequal(a, b) {
         return subobjequal(a, b) && subobjequal(b, a);
       }
@@ -67,22 +72,23 @@
         });
         socket.on('get_current_track', function loadCurrentTrack(trackinfo) {
           if (objequal(oldtrackinfo, trackinfo)) {
-            console.log(trackinfo);
-            console.log("same track! just continue...");
+            runtime.log(trackinfo);
+            runtime.log("same track! just continue...");
             return;
           }
           oldtrackinfo = trackinfo;
-          console.log("trackinfo");
-          console.log(JSON.stringify(trackinfo));
+          runtime.log("trackinfo");
+          runtime.log(JSON.stringify(trackinfo));
           track = trackinfo["currentTrack"];
-          console.log(JSON.stringify(track));
+          runtime.log(JSON.stringify(track));
           if (!!track) {
             runtime.path = track["path"];
             runtime.time = trackinfo["time"];
             runtime.playing = trackinfo["playing"];
             runtime.service = track["service"];
+            runtime.log(runtime.time);
             if (!runtime.config["services"] || !runtime.config["services"][runtime.service]) {
-              console.log("the server doesnt support this service!");
+              runtime.log("the server doesnt support this service!");
               socket.emit("next");
               return;
             }
@@ -96,35 +102,39 @@
                   loadyoutube=true;
                 } else {
                   onYouTubeIframeAPIReady();
-                  console.log("reload");
+                  runtime.log("reload");
                 }
             } else if (runtime.service == "filesystem" || runtime.service == "url") {
               if (runtime.service == "filesystem") {
                 if (!!runtime.config["services"] && !!runtime.config["services"][runtime.service] && !!runtime.config["services"][runtime.service]["prefix"]) {
                   runtime.path = runtime.config["services"][runtime.service]["prefix"] + runtime.path;
-                  console.log(runtime.path);
+                  runtime.log(runtime.path);
                 }
               }
               $("#soundboard_player").html('<p>' + runtime.service + '</p>');
               player = document.createElement('audio');
+              player.addEventListener("ended", function onEnded() {
+                socket.emit("next");
+              });
+              player.addEventListener("pause", function onPause() {
+              });
+              player.addEventListener("canplay", function onCanPlay() {
+                if (runtime.playing == true) {
+                  player.play();
+                }
+              });
+              player.addEventListener('loadedmetadata', function onPause() {
+                player.currentTime = runtime.time;
+              });
               player.src = runtime.path;
               player.controls = true;
               player.currentTime = runtime.time;
-              player.addEventListener("ended",function onEnded() {
-                socket.emit("next");
-              });
-              player.addEventListener("pause",function onPause() {
-              });
-              player.addEventListener("canplay",function onCanPlay() {
-                if (runtime.playing == true) {
-                    player.play();
-                }
-              });
+              player.load();
               $("#soundboard_player").append(player);
             } else if (runtime.service == "soundcloud") {
               $("#soundboard_player").html('<p>' + track["service"] + '</p>');
               if (!runtime.config["services"] || !runtime.config["services"][runtime.service] || !runtime.config["services"][runtime.service]["apikey"]) {
-                console.log("you need to specify a soundcloud apikey in the server settings!");
+                runtime.log("you need to specify a soundcloud apikey in the server settings!");
                 socket.emit("next");
                 return;
               }
@@ -133,20 +143,23 @@
               $.get(url, function(data) {
                 if (!!data["stream_url"] && !!data["streamable"]) {
                   player = document.createElement('audio');
-                  player.src = data["stream_url"] + (/\?/.test(data["stream_url"]) ? '&' : '?') + 'consumer_key=' + scapikey;
-                  player.controls = true;
-                  player.currentTime = runtime.time;
-                  player.addEventListener("ended",function onEnded() {
+                  player.addEventListener("ended", function onEnded() {
                     socket.emit("next");
                   });
-                  player.addEventListener("pause",function onPause() {
+                  player.addEventListener("pause", function onPause() {
                     player.play();
                   });
-                  player.addEventListener("canplay",function onCanPlay() {
+                  player.addEventListener("canplay", function onCanPlay() {
                     if (runtime.playing == true) {
                         player.play();
                     }
                   });
+                  player.addEventListener('loadedmetadata', function onPause() {
+                    player.currentTime = runtime.time;
+                  });
+                  player.src = data["stream_url"] + (/\?/.test(data["stream_url"]) ? '&' : '?') + 'consumer_key=' + scapikey;
+                  player.controls = true;
+                  player.load();
                   $("#soundboard_player").append(player);
                 } else {
                   socket.emit("next");
@@ -160,7 +173,7 @@
                 $("#soundboard_player").html('<p>What the fuck happend?</p>');
             }
           } else {
-            console.log(track);
+            runtime.log(track);
             $("#soundboard_player").html('<p>No tracks in queue</p>');
             player = document.createElement('audio');
             player.src = 'songs/default.mp3';
@@ -178,11 +191,11 @@
         socket.on('get_current_time', function returnCurrentTime() {
           if (runtime.service == "youtube") {
             socket.emit('current_Time', {"time": player.getCurrentTime()});
-          } else if (runtime.service == "filesystem") {
+          } else if (runtime.service == "filesystem" || runtime.service == "url" || runtime.service == "soundcloud") {
             socket.emit('current_Time', {"time": player.currentTime});
           } else {
-            console.log("no track playing, no time to report");
-            console.log(runtime);
+            runtime.log("no track playing, no time to report");
+            runtime.log(runtime);
           }
         });
         socket.emit('get_config');
@@ -208,7 +221,7 @@
         }
       }
       function onPlayerStateChange(event) {
-        console.log(event.data);
+        runtime.log(event.data);
         if (event.data == YT.PlayerState.PLAYING) {
         } else if (event.data == YT.PlayerState.PAUSED){
 

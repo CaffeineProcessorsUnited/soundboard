@@ -11,6 +11,17 @@ var web = express();
 var server = require('http').Server(web);
 var io = require('socket.io')(server);
 var ioc = require('socket.io-client');
+var childProcess = require('child_process')
+var phantomjs = require('phantomjs-prebuilt');
+var phantom = {
+  'path': phantomjs.path,
+  'childArgs': [
+    path.resolve('./phantomjs-player.js')
+  ],
+  'callback': function(err, stdout, stderr) {
+    // handle results
+  }
+};
 
 var debug = true;
 
@@ -174,6 +185,27 @@ var classes = {
     validService: function(availableServices) {
       return this.getService() in availableServices;
     }
+  }),
+  "Logger": Class({
+    initialize: function(size) {
+      this.currentPos = 0;
+      this.size = (!!size && size > 0) ? size : 100;
+      this.logs = [];
+    },
+    getLogs: function() {
+      var list = [];
+      for (var i = this.currentPos; i < this.size && i < this.logs.length; i++) {
+        list.push(this.logs[i]);
+      }
+      for (var i = 0; i < this.currentPos && i < this.logs.length; i++) {
+        list.push(this.logs[i]);
+      }
+      return list;
+    },
+    log: function(data) {
+      this.logs[this.currentPos] = new Date().toISOString() + ' ' + data;
+      this.currentPos = (this.currentPos + 1) % this.size;
+    }
   })
 };
 
@@ -184,25 +216,25 @@ var runtime = new (function(undefined) {
     this.playing = false;
     this.config = JSON.parse(fs.readFileSync('config.json', 'utf8'));
     this.playlists = JSON.parse(fs.readFileSync('playlists.json', 'utf8'));
-    this.log = function(msg) {
+    this.serverlog = new classes.Logger();
+    this.clients = {};
+    this.log = function() {
       var caller = callerId.getData();
-      if (callerId.getString() == null) {
-        console.log.apply(this, arguments);
-      } else {
-        var args = Array.prototype.slice.call(arguments);
-        args.unshift('LOG: ' + callerId.getDetailedString() + '():');
-        console.log.apply(this, args);
+      var string = util.format.apply(null, arguments);
+      if (!!callerId.getString()) {
+        string = 'LOG: ' + callerId.getDetailedString() + '(): ' + string;
       }
+      this.serverlog.log(string);
+      console.log(string);
     };
     this.info = function() {
       var caller = callerId.getData();
-      if (debug) {
-        var args = Array.prototype.slice.call(arguments);
-        args.unshift('INFO: ' + callerId.getDetailedString() + '():');
-        console.log.apply(this, args);
-      } else {
-        console.log.apply(this, arguments);
+      var string = util.format.apply(null, arguments);
+      if (debug && !!callerId.getString()) {
+        string = 'INFO: ' + callerId.getDetailedString() + '(): ' + string;
       }
+      this.serverlog.log(string);
+      console.log(string);
     };
     this.socketdata = function(socket) {
       // always return object as reference to the socket
@@ -273,6 +305,9 @@ server.listen(8080, function() {
 });
 
 io.on('connection', function ioOnConnection(socket) {
+  runtime.clients[socket.id] = {
+    logger: new classes.Logger()
+  };
   runtime.log('Client connected');
   socket.on('disconnect', function() {
     console.log('Client disconnected');
@@ -295,6 +330,27 @@ io.on('connection', function ioOnConnection(socket) {
   });
   socket.on('update', function() {
     io.to(socket.id).emit("poll");
+  });
+  socket.on('log', function(data) {
+    if (!!data["log"]) {
+      runtime.clients[socket.id]["logger"].log(data["log"]);
+      io.sockets.emit("onlog");
+    }
+  });
+  socket.on('get_logs', function() {
+    var clients = {};
+    for (var k in runtime.clients) {
+      if (runtime.clients.hasOwnProperty(k)) {
+        var logs = runtime.clients[k]["logger"].getLogs();
+        if (logs.length > 0) {
+          clients[k] = {
+            name: (!!runtime.clients[k]["name"]) ? runtime.clients[k]["name"] : k,
+            logs: logs
+          };
+        }
+      }
+    }
+    io.to(socket.id).emit("get_logs", { 'server': runtime.serverlog.getLogs(), 'clients': clients });
   });
   socket.on('get_config', function() {
     io.to(socket.id).emit("get_config", runtime.config);
@@ -397,8 +453,9 @@ io.on('connection', function ioOnConnection(socket) {
     io.sockets.emit('poll');
   });
   socket.on('current_Time', function onCurrentTime(data) {
-    runtime.log(data["time"]);
-    runtime.playback_time = data["time"];
+    if (!!data["time"]) {
+      runtime.playback_time = data["time"];
+    }
   });
   socket.on('play', function onPlay() {
     runtime.log("Play");
@@ -479,3 +536,5 @@ io.on('connection', function ioOnConnection(socket) {
     }
   });
 });
+
+childProcess.execFile(phantom.path, phantom.childArgs, phantom.callback);

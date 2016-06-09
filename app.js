@@ -330,6 +330,8 @@ server.listen(8080, function() {
 				runtime.log("Invalid api request");
 				runtime.log(req.body.json);
 			}
+		} else {
+			runtime.log("request is missing the data to interpret!");
 		}
     res.end('Not specified');
   });

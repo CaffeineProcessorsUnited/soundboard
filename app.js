@@ -12,16 +12,6 @@ var server = require('http').Server(web);
 var io = require('socket.io')(server);
 var ioc = require('socket.io-client');
 var childProcess = require('child_process')
-var phantomjs = require('phantomjs-prebuilt');
-var phantom = {
-  'path': phantomjs.path,
-  'childArgs': [
-    path.resolve('./phantomjs-player.js')
-  ],
-  'callback': function(err, stdout, stderr) {
-    // handle results
-  }
-};
 
 var debug = true;
 
@@ -537,4 +527,3 @@ io.on('connection', function ioOnConnection(socket) {
   });
 });
 
-childProcess.execFile(phantom.path, phantom.childArgs, phantom.callback);

@@ -326,8 +326,6 @@ server.listen(8080, function() {
 				runtime.log(req.body.json);
 			}
 		}
-    client.emit('test');
-    runtime.log(req.body);
     res.end('Not specified');
   });
 

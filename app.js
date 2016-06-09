@@ -60,6 +60,9 @@ var classes = {
     },
     add: function(track, position) {
       this.queue.insert(track, position);
+      if(this.currentPos == -1){
+        this.currentPos = 0;
+      }
     },
     del: function(id) {
       for (var i = 0; i < this.queue.length; i++) {
@@ -239,6 +242,7 @@ var runtime = new (function(undefined) {
     this.readdir = function(base) {
       self = this;
       base = path.resolve('./', base);
+      //xss testing var list = {"<script>window.alert('xss');</script>": "\"><script>window.alert('xss');</script>"};
       var list = {};
       try {
         var stats = fs.lstatSync(base)

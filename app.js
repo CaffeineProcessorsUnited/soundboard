@@ -15,6 +15,10 @@ var childProcess = require('child_process')
 
 var debug = true;
 
+console.log(path.resolve("./"));
+process.chdir(__dirname);
+console.log(path.resolve("./"));
+
 // Array Remove - By John Resig (MIT Licensed)
 Array.prototype.delete = function(from, to) {
   var rest = this.slice(parseInt(to || from) + 1 || this.length);
@@ -365,7 +369,7 @@ io.on('connection', function ioOnConnection(socket) {
           track.path = path.relative('./public/songs/filesystem/', path.resolve('./public/songs/filesystem/', track.path));
         }
         if (track.service == "url") {
-          if (!track.path.startsWith('http')) {
+          if (!(track["path"] + "").startsWith('http')) {
             runtime.log('Invalid url path. The file must be a http ot https url!');
             return;
           }

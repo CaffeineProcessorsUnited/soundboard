@@ -369,7 +369,7 @@ io.on('connection', function ioOnConnection(socket) {
           track.path = path.relative('./public/songs/filesystem/', path.resolve('./public/songs/filesystem/', track.path));
         }
         if (track.service == "url") {
-          if (!(track["path"] + "").startsWith('http')) {
+          if (!track["path"].startsWith('http')) {
             runtime.log('Invalid url path. The file must be a http ot https url!');
             return;
           }

@@ -295,7 +295,7 @@ server.listen(8080, function() {
 		if (!!req.body.json) {
 			try {
 				json = JSON.parse(req.body.json);
-				if (!!json.unique && !!json.data) {
+				if (!!json.client && !!json.client.unique && !!json.data) {
 					userid = json.unique;
 					command = json.data;
 					// TODO Check if user is allowed to send this command

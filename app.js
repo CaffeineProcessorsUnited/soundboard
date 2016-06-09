@@ -287,20 +287,53 @@ server.listen(8080, function() {
 
   api.get('*', function apiGet(req, res) {
     //console.log(generate_id('file', 'Witchqueen-of-Eldorado.mp3', started));
-    client.emit('test');
     res.end('This api doesn\'t work through GET. Please switch to POST!');
   });
 
   api.post('*', function apiPost(req, res) {
     // req.body contains the json data sent as POST data
+		if (!!req.body.json) {
+			try {
+				json = JSON.parse(req.body.json);
+				if (!!json.unique && !!json.data) {
+					userid = json.unique;
+					command = json.data;
+					// TODO Check if user is allowed to send this command
+					i = command.indexOf(" ");
+					action = command;
+					payload = "";
+					if (i > 0) {
+						action = command.slice(0, i);
+						payload = command.slice(i).trim();
+					}
+					i = payload.indexOf(" ");
+					if (i > 0) {
+						payload = payload.slice(0, i);
+					}
+					if (action.length > 1) {
+						action = action.slice(1);
+					}
+					service = "";
+					if (!!config["services"][action]) {
+						service = action;
+					}
+					if (service != "" && payload != "") {
+						socket.emit("add_track", {"service": service, "path": payload,'next': false});
+					}
+				}
+			} catch(e) {
+				runtime.log("Invalid api request");
+				runtime.log(req.body.json);
+			}
+		}
     client.emit('test');
+    runtime.log(req.body);
     res.end('Not specified');
   });
 
   api.listen(3000, function() {
     runtime.log('Api is running on port 3000!');
     client = ioc('http://localhost:8080');
-    client.emit("getFiles");
   });
 });
 

@@ -319,7 +319,12 @@ server.listen(8080, function() {
 					}
 					if (service != "" && payload != "") {
 						socket.emit("add_track", {"service": service, "path": payload,'next': false});
+					} else {
+						runtime.log("I didn't understand ur command!");
 					}
+				} else {
+					runtime.log("Malformed POST data");
+					runtime.log(json);
 				}
 			} catch(e) {
 				runtime.log("Invalid api request");

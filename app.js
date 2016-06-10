@@ -294,42 +294,37 @@ server.listen(8080, function() {
   api.post('*', function apiPost(req, res) {
     // req.body contains the json data sent as POST data
 		if (!!req.body.json) {
-			try {
-				json = JSON.parse(utf8.encode(req.body.json));
-				if (!!json.client && !!json.client.unique && !!json.data) {
-					userid = json.unique;
-					command = json.data;
-					// TODO Check if user is allowed to send this command
-					i = command.indexOf(" ");
-					action = command;
-					payload = "";
-					if (i > 0) {
-						action = command.slice(0, i);
-						payload = command.slice(i).trim();
-					}
-					i = payload.indexOf(" ");
-					if (i > 0) {
-						payload = payload.slice(0, i);
-					}
-					if (action.length > 1) {
-						action = action.slice(1);
-					}
-					service = "";
-					if (!!config["services"][action]) {
-						service = action;
-					}
-					if (service != "" && payload != "") {
-						socket.emit("add_track", {"service": service, "path": payload,'next': false});
-					} else {
-						runtime.log("I didn't understand ur command!");
-					}
-				} else {
-					runtime.log("Malformed POST data");
-					runtime.log(json);
+			json = req.body.json;
+			if (!!json.client && !!json.client.unique && !!json.data) {
+				userid = json.unique;
+				command = json.data;
+				// TODO Check if user is allowed to send this command
+				i = command.indexOf(" ");
+				action = command;
+				payload = "";
+				if (i > 0) {
+					action = command.slice(0, i);
+					payload = command.slice(i).trim();
 				}
-			} catch(e) {
-				runtime.log("Invalid api request");
-				runtime.log(req.body.json);
+				i = payload.indexOf(" ");
+				if (i > 0) {
+					payload = payload.slice(0, i);
+				}
+				if (action.length > 1) {
+					action = action.slice(1);
+				}
+				service = "";
+				if (!!config["services"][action]) {
+					service = action;
+				}
+				if (service != "" && payload != "") {
+					socket.emit("add_track", {"service": service, "path": payload,'next': false});
+				} else {
+					runtime.log("I didn't understand ur command!");
+				}
+			} else {
+				runtime.log("Malformed POST data");
+				runtime.log(json);
 			}
 		} else {
 			runtime.log("request is missing the data to interpret!");

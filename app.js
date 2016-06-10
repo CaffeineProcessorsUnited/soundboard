@@ -63,7 +63,12 @@ var classes = {
       this.queue = [];
       this.currentPos = -1;
       this.isShuffle = false;
-      this.isRepeat = false;
+      /*
+      0 -> no repeat
+      1 -> repeat all
+      2 -> repeat one
+      */
+      this.isRepeat = 1;
     },
     add: function(track, position) {
       this.queue.insert(track, position);
@@ -108,16 +113,31 @@ var classes = {
       return this.queue.length == 0;
     },
     prev: function() {
-      this.currentPos = (this.currentPos + this.queue.length - 1)%this.queue.length;
+      this.currentPos = (this.currentPos + this.queue.length - 1) % this.queue.length;
     },
-    next: function(position) {
+    next: function(position, force) {
       if (!!position) {
         this.currentPos = position;
       } else {
-        if (this.isShuffel) {
-          this.currentPos = randomInt(0, this.queue.length);
-        } else {
-          this.currentPos = (this.currentPos + 1) % this.queue.length;
+        if (this.isRepeat === 0 || this.isRepeat === 1) {
+          if (this.isRepeat === 0 && this.currentPos >= this.queue.length - 1) {
+            this.currentPos = -1;
+            runtime.isPlaying = false;
+          } else {
+            if (this.isShuffle) {
+              this.currentPos = randomInt(0, this.queue.length);
+            } else {
+              this.currentPos = (this.currentPos + 1) % this.queue.length;
+            }
+          }
+        } else if (this.isRepeat === 2) {
+          if (!!force) {
+            if (this.isShuffle) {
+              this.currentPos = randomInt(0, this.queue.length);
+            } else {
+              this.currentPos = (this.currentPos + 1) % this.queue.length;
+            }
+          }
         }
       }
     },
@@ -448,6 +468,7 @@ io.on('connection', function ioOnConnection(socket) {
   socket.on('reorder_track', function socketReorderTrack(data) {
     if (data.a && data.b) {
       runtime.queue.swap(data.a, data.b);
+      io.sockets.emit('poll');
     } else {
       runtime.log('What did you try to achieve?');
     }
@@ -476,8 +497,8 @@ io.on('connection', function ioOnConnection(socket) {
   socket.on('get_current_track', function socketCurrentTrack() {
     io.to(socket.id).emit('get_current_track', {'currentTrack': runtime.queue.getCurrentTrack(), 'time': runtime.playback_time, 'playing': runtime.playing});
   });
-  socket.on('next',function socketNextElement() {
-    runtime.queue.next();
+  socket.on('next',function socketNextElement(data) {
+    runtime.queue.next(undefined, (!!data && !!data["force"]));
     runtime.playback_time = 0;
     io.sockets.emit("poll");
   });
@@ -553,7 +574,7 @@ io.on('connection', function ioOnConnection(socket) {
     runtime.queue.setShuffle(!runtime.queue.getShuffle());
   });
   socket.on('toggleRepeat', function onToggleRepeat(){
-    runtime.queue.setRepeat(!runtime.queue.getRepeat());
+    runtime.queue.setRepeat((runtime.queue.getRepeat() + 1) % 3);
   });
   socket.on('chpos_of_track', function onChangeTrackPos(data){
     runtime.log(data)
@@ -570,4 +591,3 @@ io.on('connection', function ioOnConnection(socket) {
     }
   });
 });
-

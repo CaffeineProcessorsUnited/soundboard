@@ -294,7 +294,7 @@ server.listen(8080, function() {
     // req.body contains the json data sent as POST data
 		if (!!req.body.json) {
 			try {
-				json = JSON.parse(req.body.json);
+				json = JSON.parse(JSON.stringify(req.body.json));
 				if (!!json.client && !!json.client.unique && !!json.data) {
 					userid = json.unique;
 					command = json.data;

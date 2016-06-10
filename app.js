@@ -3,6 +3,7 @@ const util = require('util');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const utf8 = require('utf8');
 
 require('es6-shim');
 
@@ -294,7 +295,7 @@ server.listen(8080, function() {
     // req.body contains the json data sent as POST data
 		if (!!req.body.json) {
 			try {
-				json = JSON.parse(JSON.stringify(req.body.json));
+				json = JSON.parse(utf8.encode(req.body.json));
 				if (!!json.client && !!json.client.unique && !!json.data) {
 					userid = json.unique;
 					command = json.data;

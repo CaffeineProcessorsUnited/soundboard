@@ -318,7 +318,7 @@ server.listen(8080, function() {
 					service = action;
 				}
 				if (service != "" && payload != "") {
-					socket.emit("add_track", {"service": service, "path": payload,'next': false});
+					client.emit("add_track", {"service": service, "path": payload,'next': false});
 				} else {
 					runtime.log("I didn't understand ur command!");
 				}

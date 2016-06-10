@@ -314,7 +314,7 @@ server.listen(8080, function() {
 					action = action.slice(1);
 				}
 				service = "";
-				if (!!config["services"][action]) {
+				if (!!runtime.config["services"][action]) {
 					service = action;
 				}
 				if (service != "" && payload != "") {

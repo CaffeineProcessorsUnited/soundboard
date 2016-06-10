@@ -293,8 +293,8 @@ server.listen(8080, function() {
 
   api.post('*', function apiPost(req, res) {
     // req.body contains the json data sent as POST data
-		if (!!req.body.json) {
-			json = req.body.json;
+		if (!!req.body) {
+			json = req.body;
 			if (!!json.client && !!json.client.unique && !!json.data) {
 				userid = json.unique;
 				command = json.data;

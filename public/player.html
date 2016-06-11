@@ -217,6 +217,7 @@
       }
       function onPlayerReady(event) {
         if(runtime.playing==1){
+            event.target.setPlaybackQuality('small');
             event.target.seekTo(runtime.time,false);
             event.target.playVideo();
         }

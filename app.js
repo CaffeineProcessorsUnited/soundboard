@@ -41,7 +41,7 @@ Array.prototype.insert = function(item, position) {
 };
 
 function randomInt(low, high) {
-  return Math.floor(Math.random * (high - low) + low);
+  return Math.floor(Math.random() * (high - low) + low);
 }
 
 var Class = function(methods) {

@@ -121,8 +121,14 @@ var classes = {
       } else {
         if (this.isRepeat === 0 || this.isRepeat === 1) {
           if (this.isRepeat === 0 && this.currentPos >= this.queue.length - 1) {
-            this.currentPos = -1;
-            runtime.isPlaying = false;
+            if (!!force) {
+              if (this.isShuffle && !this.isEmpty()) {
+                this.currentPos = 0;
+              } else {
+                this.currentPos = -1;
+                runtime.isPlaying = false;
+              }
+            }
           } else {
             if (this.isShuffle) {
               this.currentPos = randomInt(0, this.queue.length);

@@ -25,6 +25,10 @@
       "name": "SoundCloud",
       "icon": "soundcloud",
       "apikey": "htuiRd1JP11Ww0X72T1C3g"
+    },
+    "tts": {
+      "name": "Text-to-Speech",
+      "icon": "bullhorn"
     }
   },
   "users": {

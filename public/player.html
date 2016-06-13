@@ -25,6 +25,10 @@
     <script src="/socket.io/socket.io.js"></script>
     <script src="/assets/js/jquery.min.js"></script>
     <script src="/assets/js/util.min.js"></script>
+    <script type="text/javascript" src="/assets/js/mespeak.js"></script>
+    <script type="text/javascript">
+      meSpeak.loadConfig("/assets/json/mespeak_config.json");
+    </script>
     <script>
       var loadyoutube=false;
       var player;
@@ -169,6 +173,28 @@
                 socket.emit("next");
               });
 
+              $("#soundboard_player").append(player);
+            } else if (runtime.service == "tts") {
+              var language = "de";
+              if (runtime.config["services"] && runtime.config["services"][runtime.service]) {
+                if (runtime.config["services"][runtime.service]["name"]) {
+                  $("#soundboard_player").html('<p>' + runtime.config["services"][runtime.service]["name"] + '</p>');
+                } else {
+                  $("#soundboard_player").html('<p>' + track["service"] + '</p>');
+                }
+                if (runtime.config["services"][runtime.service]["language"]) {
+                  language = runtime.config["services"][runtime.service]["language"];
+                }
+              }
+              meSpeak.loadVoice("/assets/voices/" + language + ".json");
+              meSpeak.speak(runtime.path, {}, function() {
+                socket.emit("next");
+              });
+              player = $('<button>Stop</button>');
+              player.on('click', function() {
+                meSpeak.stop();
+                socket.emit("next");
+              });
               $("#soundboard_player").append(player);
             } else {
                 $("#soundboard_player").html('<p>What the fuck happend?</p>');

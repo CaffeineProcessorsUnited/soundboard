@@ -534,6 +534,7 @@ io.on('connection', function ioOnConnection(socket) {
     }
   });
   socket.on("stop", function onStop() {
+    runtime.queue.setCurrentPosition(-1);
     runtime.playback_time = 0;
     runtime.playing = false;
     io.sockets.emit("poll");

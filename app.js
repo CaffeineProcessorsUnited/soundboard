@@ -69,6 +69,7 @@ var classes = {
       2 -> repeat one
       */
       this.isRepeat = 1;
+      this.trackChanged;
     },
     add: function(track, position) {
       this.queue.insert(track, position);
@@ -125,6 +126,7 @@ var classes = {
     },
     prev: function() {
       this.currentPos = (this.currentPos + this.queue.length - 1) % this.queue.length;
+      this.trackChanged = new Date().getTime();
     },
     next: function(position, force) {
       if (!!position) {
@@ -174,7 +176,10 @@ var classes = {
       return this.currentPos;
     },
     setCurrentPosition: function(pos) {
-      this.currentPos=pos;
+      this.currentPos = pos;
+    },
+    getTrackChanged: function() {
+      return this.trackChanged;
     },
 		loadQueueFromPlaylist: function(name) {
 			if (runtime.playlists[name]) {
@@ -530,7 +535,7 @@ io.on('connection', function ioOnConnection(socket) {
     io.sockets.emit("poll");
   });
   socket.on('get_current_track', function socketCurrentTrack() {
-    io.to(socket.id).emit('get_current_track', {'currentTrack': runtime.queue.getCurrentTrack(), 'time': runtime.playback_time, 'playing': runtime.playing});
+    io.to(socket.id).emit('get_current_track', {'currentTrack': runtime.queue.getCurrentTrack(), 'time': runtime.playback_time, 'playing': runtime.playing, 'changed': runtime.queue.getTrackChanged() });
   });
   socket.on('next',function socketNextElement(data) {
     runtime.queue.next(undefined, (!!data && !!data["force"]));

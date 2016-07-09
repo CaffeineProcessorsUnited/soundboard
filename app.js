@@ -465,88 +465,106 @@ cpu.module("socket").on('playtrack', {
     }
   }
 });
-//TODO below be dragons
-cpu.module("socket").on('toggleShuffle', function onToggleShuffle() {
-  runtime.queue.setShuffle(!runtime.queue.getShuffle());
+cpu.module("socket").on('toggleShuffle', {
+  onreceive: function onToggleShuffle() {
+    runtime.queue.setShuffle(!runtime.queue.getShuffle());
+  }
 });
-cpu.module("socket").on('toggleRepeat', function onToggleRepeat() {
-  runtime.queue.setRepeat((runtime.queue.getRepeat() + 1) % 3);
+cpu.module("socket").on('toggleRepeat', {
+  onreceive: function onToggleRepeat() {
+    runtime.queue.setRepeat((runtime.queue.getRepeat() + 1) % 3);
+  }
 });
-cpu.module("socket").on('chpos_of_track', function onChangeTrackPos(data) {
-  runtime.log(data);
-  if (data.id && data.newpos != undefined && data.newpos >= 0 && data.newpos < runtime.queue.size()) {
-    var i = runtime.queue.getPos(data.id);
-    if (i >= 0) {
-      var track = runtime.queue.get(i);
-      runtime.queue.del(data.id);
-      runtime.queue.add(track, data.newpos);
-      if (runtime.queue.getCurrentPosition() == i) {
-        runtime.queue.setCurrentPosition(data.newpos);
+cpu.module("socket").on('chpos_of_track', {
+  onreceive: function onChangeTrackPos(data) {
+    runtime.log(data);
+    if (data.id && data.newpos != undefined && data.newpos >= 0 && data.newpos < runtime.queue.size()) {
+      var i = runtime.queue.getPos(data.id);
+      if (i >= 0) {
+        var track = runtime.queue.get(i);
+        runtime.queue.del(data.id);
+        runtime.queue.add(track, data.newpos);
+        if (runtime.queue.getCurrentPosition() == i) {
+          runtime.queue.setCurrentPosition(data.newpos);
+        }
       }
     }
   }
 });
-cpu.module("socket").on('seek', function onSeek(data) {
-  if (data && data.position && data.position >= 0) {
-    console.log(data.position);
-    runtime.playback_time = data.position;
-    io.sockets.emit("poll");
-  }
-});
-cpu.module("socket").on('getDuration', function onGetDuration(data) {
-  if (data && data.id) {
-    var i = runtime.queue.getPos(data.id);
-    if (i >= 0) {
-      io.to(socket.id).emit('getDuration', {'duration': runtime.queue.get(i).getDuration() });
+cpu.module("socket").on('seek', {
+  onreceive: function onSeek(data) {
+    if (data && data.position && data.position >= 0) {
+      console.log(data.position);
+      runtime.playback_time = data.position;
+      socket.module("socket").emit("poll");
     }
-  } else {
-    io.to(socket.id).emit('getDuration', {'duration': runtime.queue.getCurrentTrack().getDuration() });
   }
 });
-cpu.module("socket").on('setDuration', function onSetDuration(data) {
-  changed = false;
-  if (data.duration && data.duration >= 0) {
+cpu.module("socket").on('getDuration', {
+  onreceive: function onGetDuration(data) {
+    if (data && data.id) {
+      var i = runtime.queue.getPos(data.id);
+      if (i >= 0) {
+        //TODO do with cpu.module
+        io.to(socket.id).emit('getDuration', {'duration': runtime.queue.get(i).getDuration() });
+      }
+    } else {
+      //TODO do with cpu.module
+      io.to(socket.id).emit('getDuration', {'duration': runtime.queue.getCurrentTrack().getDuration() });
+    }
+  }
+});
+cpu.module("socket").on('setDuration', {
+  onreceive: function onSetDuration(data) {
+    changed = false;
+    if (data.duration && data.duration >= 0) {
+      if (data.id) {
+        var i = runtime.queue.getPos(data.id);
+        if (i >= 0) {
+          changed = (runtime.queue.get(i).getDuration() != data.duration);
+          runtime.queue.get(i).setDuration(data.duration);
+        }
+      } else {
+        changed = (runtime.queue.getCurrentTrack().getDuration() != data.duration);
+        runtime.queue.getCurrentTrack().setDuration(data.duration);
+      }
+      if (changed) {
+        cpu.module("socket").emit("durationChanged");
+      }
+    }
+  }
+});
+cpu.module("socket").on('getPlaybackTime', {
+  onreceive: function onGetPlaybackTime(data) {
+    /*
     if (data.id) {
       var i = runtime.queue.getPos(data.id);
       if (i >= 0) {
-        changed = (runtime.queue.get(i).getDuration() != data.duration);
-        runtime.queue.get(i).setDuration(data.duration);
+        io.to(socket.id).emit('getPlaybackTime', {'time': runtime.queue.get(i) });
       }
     } else {
-      changed = (runtime.queue.getCurrentTrack().getDuration() != data.duration);
-      runtime.queue.getCurrentTrack().setDuration(data.duration);
+      io.to(socket.id).emit('getPlaybackTime', {'time': runtime.queue.getCurrentTrack() });
     }
-    if (changed) {
-      io.sockets.emit("durationChanged");
-    }
+    */
+    //TODO do with cpu.module
+    io.to(socket.id).emit('getPlaybackTime', {'time': runtime.playback_time });
   }
 });
-cpu.module("socket").on('getPlaybackTime', function onGetPlaybackTime(data) {
-  /*
-  if (data.id) {
-    var i = runtime.queue.getPos(data.id);
-    if (i >= 0) {
-      io.to(socket.id).emit('getPlaybackTime', {'time': runtime.queue.get(i) });
+cpu.module("socket").on('setPlaybackTime', {
+  onreceive: function onSetPlaybackTime(data) {
+    /*
+    if (data.id) {
+      var i = runtime.queue.getPos(data.id);
+      if (i >= 0) {
+        runtime.queue.get(i).setPlaybackTime(data.time);
+      }
+    } else {
+      runtime.queue.getCurrentTrack().setPlaybackTime(data.time);
     }
-  } else {
-    io.to(socket.id).emit('getPlaybackTime', {'time': runtime.queue.getCurrentTrack() });
-  }
-  */
-  io.to(socket.id).emit('getPlaybackTime', {'time': runtime.playback_time });
-});
-cpu.module("socket").on('setPlaybackTime', function onSetPlaybackTime(data) {
-  /*
-  if (data.id) {
-    var i = runtime.queue.getPos(data.id);
-    if (i >= 0) {
-      runtime.queue.get(i).setPlaybackTime(data.time);
+    */
+    if (data.time) {
+      runtime.playback_time = data.time;
     }
-  } else {
-    runtime.queue.getCurrentTrack().setPlaybackTime(data.time);
+    cpu.module("socket").emit("playbackTimeChanged");
   }
-  */
-  if (data.time) {
-    runtime.playback_time = data.time;
-  }
-  io.sockets.emit("playbackTimeChanged");
 });

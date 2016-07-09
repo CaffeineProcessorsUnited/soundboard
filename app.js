@@ -394,18 +394,28 @@ server.listen(8080, function() {
   });
 });
 
+var cpu = require("./public/assets/js/cpu/cpu.js")();
+cpu.loadModule(require(".public/assets/js/cpu/events.cpu.js"));
+cpu.loadModule(require(".public/assets/js/cpu/socket.cpu.js"), { "io" : io });
+
 io.on('connection', function ioOnConnection(socket) {
   runtime.clients[socket.id] = {
     logger: new classes.Logger()
   };
   runtime.log('Client connected');
-  socket.on('disconnect', function() {
+});
+cpu.module("socket").on('disconnect', {
+  onreceive: function() {
     console.log('Client disconnected');
-  });
-  socket.on('test', function() {
+  }
+});
+cpu.module("socket").on('test', {
+  onreceive: function() {
     runtime.log('Someone successfully tested something!');
-  });
-  socket.on('login', function(data) {
+  }
+});
+cpu.module("socket").on('login', {
+  onreceive: function(data) {
     if (data.username && data.password) {
       runtime.log('I like turtles!');
       runtime.socketdata(socket).user.name = data.username;
@@ -414,20 +424,28 @@ io.on('connection', function ioOnConnection(socket) {
       runtime.log('I can\'t use that information u gave me!', data);
     }
   });
-  socket.on('logout', function() {
+}
+cpu.module("socket").on('logout', {
+  onreceive: function() {
     runtime.socketdata(socket).user.authenticated = true;
     runtime.socketdata(socket).user = undefined;
   });
-  socket.on('update', function() {
-    io.to(socket.id).emit("poll");
-  });
-  socket.on('log', function(data) {
+}
+cpu.module("socket").on('update', {
+  onreceive: function() {
+    cpu.module("socket").emit("poll"); //TODO to all
+  }
+});
+cpu.module("socket").on('log', {
+  onreceive: function(data) {
     if (!!data["log"]) {
       runtime.clients[socket.id]["logger"].log(data["log"]);
-      io.sockets.emit("onlog");
+      cpu.module("socket").emit("onlog"); //TODO just to socket.id
     }
-  });
-  socket.on('get_logs', function() {
+  }
+});
+cpu.module("socket").on('get_logs', {
+  onreceive: function() {
     var clients = {};
     for (var k in runtime.clients) {
       if (runtime.clients.hasOwnProperty(k)) {
@@ -440,12 +458,18 @@ io.on('connection', function ioOnConnection(socket) {
         }
       }
     }
+    //TODO do with cpu.module
     io.to(socket.id).emit("get_logs", { 'server': runtime.serverlog.getLogs(), 'clients': clients });
-  });
-  socket.on('get_config', function() {
+  }
+});
+cpu.module("socket").on('get_config', {
+  onreceive: function() {
+    //TODO with cpu.module
     io.to(socket.id).emit("get_config", runtime.config);
-  });
-  socket.on('add_track', function socketAddTrack(data) {
+  }
+});
+cpu.module("socket").on('add_track', {
+  onreceive: function socketAddTrack(data) {
     if(!runtime.userLoggedin(socket)) {
       //return;
     }
@@ -471,14 +495,15 @@ io.on('connection', function ioOnConnection(socket) {
           runtime.queue.add(new classes.Track(track.service, track.path, {time: track.time || undefined}), pos);
           runtime.queue.next(pos);
           runtime.playing = true;
-          io.sockets.emit("poll");
+          cpu.module("socket").emit("poll");
         } else {
           var empty = runtime.queue.isEmpty();
           runtime.queue.add(new classes.Track(track.service, track.path, {time: track.time || undefined}));
           if (empty) {
-            io.sockets.emit('poll');
+            cpu.module("socket").emit('poll');
           }
         }
+        //TODO do with cpu.module
         io.to(socket.id).emit("poll");
       } else {
         runtime.log('This doesn\'t seem to be a valid track.');
@@ -486,8 +511,10 @@ io.on('connection', function ioOnConnection(socket) {
     } else {
       runtime.log('What do you want from me?');
     }
-  });
-  socket.on('delete_track', function socketDeleteTrack(data) {
+  }
+});
+cpu.module("socket").on('delete_track', {
+  onreceive: function socketDeleteTrack(data) {
     if (data.id) {
       current = runtime.queue.getCurrentPosition();
       var i = runtime.queue.del(data.id);
@@ -495,202 +522,237 @@ io.on('connection', function ioOnConnection(socket) {
         runtime.playing = false;
       }
       if (current == i) {
-        io.sockets.emit('poll');
+        cpu.module("socket").emit('poll');
       }
     } else {
       runtime.log('This track seems to be missing a id.');
     }
-  });
-  socket.on('reorder_track', function socketReorderTrack(data) {
+  }
+});
+cpu.module("socket").on('reorder_track', {
+  onreceive:function socketReorderTrack(data) {
     if (data.a && data.b) {
       runtime.queue.swap(data.a, data.b);
-      io.sockets.emit('poll');
+      cpu.module("socket").emit('poll');
     } else {
       runtime.log('What did you try to achieve?');
     }
-  });
-  socket.on('get_queue', function socketGetQueue(data) {
+  }
+});
+cpu.module("socket").on('get_queue', {
+  onreceive: function socketGetQueue(data) {
+    //TODO do with cpu.module
     io.to(socket.id).emit('get_queue', {
       "queue": runtime.queue.list(),
       "currentTrack": runtime.queue.getCurrentTrack(),
       "repeat": runtime.queue.getRepeat(),
       "shuffle": runtime.queue.getShuffle()
     });
-  });
-	socket.on('get_playlist', function(data) {
-		if(!!data["name"]) {
-			io.to(socket.id).emit('get_playlist_tracks', { "playlist": data["name"], "tracks": runtime.playlists[data['name']].tracks});
-		} else {
-			var playlistnames = [];
-			for (var key in runtime.playlists) {
-				playlistnames.insert(key);
-			}
-			io.to(socket.id).emit('get_playlist', {"playlists": playlistnames});
-		}
-	});
-  socket.on('clear_queue', function socketClearQueue() {
+  }
+});
+cpu.module("socket").on('get_playlist', {
+  onreceive: function(data) {
+	   if(!!data["name"]) {
+       io.to(socket.id).emit('get_playlist_tracks', { "playlist": data["name"], "tracks": runtime.playlists[data['name']].tracks});
+	   } else {
+		   var playlistnames = [];
+		 for (var key in runtime.playlists) {
+			 playlistnames.insert(key);
+		 }
+     //TODO with cpu.module
+		 io.to(socket.id).emit('get_playlist', {"playlists": playlistnames});
+	}
+});
+cpu.module("socket").on('clear_queue', {
+  onreceive: function socketClearQueue() {
     runtime.queue.clear();
     runtime.playback_time = 0;
     runtime.playing = false;
-    io.sockets.emit("poll");
-  });
-  socket.on('get_current_track', function socketCurrentTrack() {
+    cpu.module("socket").emit("poll");
+});
+cpu.module("socket").on('get_current_track', {
+  onreceive: function socketCurrentTrack() {
+    //TODO with cpu.module
     io.to(socket.id).emit('get_current_track', {'currentTrack': runtime.queue.getCurrentTrack(), 'time': runtime.playback_time, 'playing': runtime.playing, 'changed': runtime.queue.getTrackChanged() });
-  });
-  socket.on('next',function socketNextElement(data) {
+});
+cpu.module("socket").on('next', {
+  onreceive: function socketNextElement(data) {
     runtime.queue.next(undefined, (!!data && !!data["force"]));
     runtime.playback_time = 0;
-    io.sockets.emit("poll");
-  });
-  socket.on('prev', function socketPrevElement() {
+    cpu.module("socket").emit("poll");
+});
+cpu.module("socket").on('prev', {
+  onreceive: function socketPrevElement() {
     runtime.queue.prev();
     runtime.playback_time = 0;
-    io.sockets.emit('poll');
-  });
-  socket.on('current_Time', function onCurrentTime(data) {
+    cpu.module("socket").emit('poll');
+});
+cpu.module("socket").on('current_Time', {
+  onreceive: function onCurrentTime(data) {
     if (!!data["time"]) {
       runtime.playback_time = data["time"];
     }
-  });
-  socket.on('play', function onPlay() {
+  }
+});
+cpu.module("socket").on('play', {
+  onreceive: function onPlay() {
     runtime.log("Play");
     runtime.playing = true;
     if (runtime.queue.getCurrentTrack() !== undefined) {
-      io.sockets.emit("poll");
+      cpu.module("socket").emit("poll");
     }
-  });
-  socket.on("pause", function onPause() {
+  }
+});
+cpu.module("socket").on("pause", {
+  onreceive: function onPause() {
     runtime.log("Pause");
     runtime.playing = false;
     if (runtime.queue.getCurrentTrack() !== undefined) {
-      io.sockets.emit("get_current_time");
-      io.sockets.emit("poll");
+      cpu.module("socket").emit("get_current_time");
+      cpu.module("socket").emit("poll");
     }
-  });
-  socket.on("stop", function onStop() {
+  }
+});
+cpu.module("socket").on("stop", {
+  onreceive: function onStop() {
     runtime.queue.setCurrentPosition(-1);
     runtime.playback_time = 0;
     runtime.playing = false;
-    io.sockets.emit("poll");
-  });
-  socket.on('isPlaying', function onIsPlaying() {
+    cpu.module("socket").emit("poll");
+  }
+});
+cpu.module("socket").on('isPlaying', {
+  onreceive: function onIsPlaying() {
+    //TODO do with cpu.module
     io.to(socket.id).emit('isPlaying', {'playing': runtime.playing});
-  });
-  socket.on('save_queue_to_playlist', function onSaveQueueAsPlaylist(data){
+  }
+});
+cpu.module("socket").on('save_queue_to_playlist', {
+  onreceive: function onSaveQueueAsPlaylist(data){
     runtime.queue.saveQueueAsPlaylist(data.playlistname);
-    io.sockets.emit("poll");
-  });
-  socket.on('delete_playlist', function socketDeletePlaylist(data){
+    cpu.module("socket").emit("poll");
+  }
+});
+cpu.module("socket").on('delete_playlist', {
+  onreceive: function socketDeletePlaylist(data){
     if (!!runtime.playlists[data.name]) {
       delete runtime.playlists[data.name];
       fs.writeFile('playlists.json', JSON.stringify(runtime.playlists), 'utf-8');
-      io.sockets.emit("poll");
+      cpu.module("socket").emit("poll");
     }
-  });
-  socket.on('getFiles', function getFiles() {
+  }
+});
+cpu.module("socket").on('getFiles', {
+  onreceive: function getFiles() {
+    //TODO do with cpu.module
     io.to(socket.id).emit('getFiles', {'files': runtime.getFiles()});
-  });
-  socket.on('playPlaylist', function onPlayPlaylist(data) {
+  }
+});
+cpu.module("socket").on('playPlaylist', {
+  onreceive: function onPlayPlaylist(data) {
     if (data.name != '' && data.playing) {
-        runtime.queue.loadQueueFromPlaylist(data.name);
-        runtime.playback_time = 0;
-        runtime.playing = data.playing;
-        io.sockets.emit('poll');
+      runtime.queue.loadQueueFromPlaylist(data.name);
+      runtime.playback_time = 0;
+      runtime.playing = data.playing;
+      cpu.module("socket").emit('poll');
     }
-  });
-  socket.on('playtrack', function onPlaySelectedTrack(data) {
+  }
+});
+cpu.module("socket").on('playtrack', {
+  onreceive: function onPlaySelectedTrack(data) {
     if (data.id) {
       i = runtime.queue.getPos(data.id);
       if (i >= 0) {
         runtime.playback_time=0;
         runtime.playing = true;
         runtime.queue.setCurrentPosition(i);
-        io.sockets.emit("poll");
+        cpu.module("socket").emit("poll");
       }
     }
-  });
-  socket.on('toggleShuffle', function onToggleShuffle() {
-    runtime.queue.setShuffle(!runtime.queue.getShuffle());
-  });
-  socket.on('toggleRepeat', function onToggleRepeat() {
-    runtime.queue.setRepeat((runtime.queue.getRepeat() + 1) % 3);
-  });
-  socket.on('chpos_of_track', function onChangeTrackPos(data) {
-    runtime.log(data);
-    if (data.id && data.newpos != undefined && data.newpos >= 0 && data.newpos < runtime.queue.size()) {
-      var i = runtime.queue.getPos(data.id);
-      if (i >= 0) {
-        var track = runtime.queue.get(i);
-        runtime.queue.del(data.id);
-        runtime.queue.add(track, data.newpos);
-        if (runtime.queue.getCurrentPosition() == i) {
-          runtime.queue.setCurrentPosition(data.newpos);
-        }
+  }
+});
+//TODO below be dragons
+cpu.module("socket").on('toggleShuffle', function onToggleShuffle() {
+  runtime.queue.setShuffle(!runtime.queue.getShuffle());
+});
+cpu.module("socket").on('toggleRepeat', function onToggleRepeat() {
+  runtime.queue.setRepeat((runtime.queue.getRepeat() + 1) % 3);
+});
+cpu.module("socket").on('chpos_of_track', function onChangeTrackPos(data) {
+  runtime.log(data);
+  if (data.id && data.newpos != undefined && data.newpos >= 0 && data.newpos < runtime.queue.size()) {
+    var i = runtime.queue.getPos(data.id);
+    if (i >= 0) {
+      var track = runtime.queue.get(i);
+      runtime.queue.del(data.id);
+      runtime.queue.add(track, data.newpos);
+      if (runtime.queue.getCurrentPosition() == i) {
+        runtime.queue.setCurrentPosition(data.newpos);
       }
     }
-  });
-  socket.on('seek', function onSeek(data) {
-    if (data && data.position && data.position >= 0) {
-      console.log(data.position);
-      runtime.playback_time = data.position;
-      io.sockets.emit("poll");
+  }
+});
+cpu.module("socket").on('seek', function onSeek(data) {
+  if (data && data.position && data.position >= 0) {
+    console.log(data.position);
+    runtime.playback_time = data.position;
+    io.sockets.emit("poll");
+  }
+});
+cpu.module("socket").on('getDuration', function onGetDuration(data) {
+  if (data && data.id) {
+    var i = runtime.queue.getPos(data.id);
+    if (i >= 0) {
+      io.to(socket.id).emit('getDuration', {'duration': runtime.queue.get(i).getDuration() });
     }
-  });
-  socket.on('getDuration', function onGetDuration(data) {
-    if (data && data.id) {
-      var i = runtime.queue.getPos(data.id);
-      if (i >= 0) {
-        io.to(socket.id).emit('getDuration', {'duration': runtime.queue.get(i).getDuration() });
-      }
-    } else {
-      io.to(socket.id).emit('getDuration', {'duration': runtime.queue.getCurrentTrack().getDuration() });
-    }
-  });
-  socket.on('setDuration', function onSetDuration(data) {
-    changed = false;
-    if (data.duration && data.duration >= 0) {
-      if (data.id) {
-        var i = runtime.queue.getPos(data.id);
-        if (i >= 0) {
-          changed = (runtime.queue.get(i).getDuration() != data.duration);
-          runtime.queue.get(i).setDuration(data.duration);
-        }
-      } else {
-        changed = (runtime.queue.getCurrentTrack().getDuration() != data.duration);
-        runtime.queue.getCurrentTrack().setDuration(data.duration);
-      }
-      if (changed) {
-        io.sockets.emit("durationChanged");
-      }
-    }
-  });
-  socket.on('getPlaybackTime', function onGetPlaybackTime(data) {
-    /*
+  } else {
+    io.to(socket.id).emit('getDuration', {'duration': runtime.queue.getCurrentTrack().getDuration() });
+  }
+});
+cpu.module("socket").on('setDuration', function onSetDuration(data) {
+  changed = false;
+  if (data.duration && data.duration >= 0) {
     if (data.id) {
       var i = runtime.queue.getPos(data.id);
       if (i >= 0) {
-        io.to(socket.id).emit('getPlaybackTime', {'time': runtime.queue.get(i) });
+        changed = (runtime.queue.get(i).getDuration() != data.duration);
+        runtime.queue.get(i).setDuration(data.duration);
       }
     } else {
-      io.to(socket.id).emit('getPlaybackTime', {'time': runtime.queue.getCurrentTrack() });
+      changed = (runtime.queue.getCurrentTrack().getDuration() != data.duration);
+      runtime.queue.getCurrentTrack().setDuration(data.duration);
     }
-    */
-    io.to(socket.id).emit('getPlaybackTime', {'time': runtime.playback_time });
-  });
-  socket.on('setPlaybackTime', function onSetPlaybackTime(data) {
-    /*
-    if (data.id) {
-      var i = runtime.queue.getPos(data.id);
-      if (i >= 0) {
-        runtime.queue.get(i).setPlaybackTime(data.time);
-      }
-    } else {
-      runtime.queue.getCurrentTrack().setPlaybackTime(data.time);
+    if (changed) {
+      io.sockets.emit("durationChanged");
     }
-    */
-    if (data.time) {
-      runtime.playback_time = data.time;
+  }
+});
+cpu.module("socket").on('getPlaybackTime', function onGetPlaybackTime(data) {
+  /*
+  if (data.id) {
+    var i = runtime.queue.getPos(data.id);
+    if (i >= 0) {
+      io.to(socket.id).emit('getPlaybackTime', {'time': runtime.queue.get(i) });
     }
-    io.sockets.emit("playbackTimeChanged");
-  });
+  } else {
+    io.to(socket.id).emit('getPlaybackTime', {'time': runtime.queue.getCurrentTrack() });
+  }
+  */
+  io.to(socket.id).emit('getPlaybackTime', {'time': runtime.playback_time });
+});
+cpu.module("socket").on('setPlaybackTime', function onSetPlaybackTime(data) {
+  /*
+  if (data.id) {
+    var i = runtime.queue.getPos(data.id);
+    if (i >= 0) {
+      runtime.queue.get(i).setPlaybackTime(data.time);
+    }
+  } else {
+    runtime.queue.getCurrentTrack().setPlaybackTime(data.time);
+  }
+  */
+  if (data.time) {
+    runtime.playback_time = data.time;
+  }
+  io.sockets.emit("playbackTimeChanged");
 });

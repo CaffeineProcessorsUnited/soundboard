@@ -265,6 +265,13 @@ var classes = {
   })
 };
 
+var stream = require('./stream');
+var s = new stream();
+s.addLoader("file", function(path) {
+	var file = fs.createReadStream(path);
+	this.play(file);
+});
+
 var runtime = new (function(undefined) {
     this.started = new Date().getTime();
     this.queue = new classes.Queue();

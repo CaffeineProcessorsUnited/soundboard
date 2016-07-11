@@ -202,401 +202,419 @@ io.on('connection', function ioOnConnection(socket) {
 });
 
 cpu.module("socket").on('disconnect', {
-    onreceive: function(cpu) {
-      console.log('Client disconnected');
-    }
-  });
-  cpu.module("socket").on('test', {
-    onreceive: function(cpu) {
-      runtime.log('Someone successfully tested something!');
-    }
-  });
-  cpu.module("socket").on('login', {
-    onreceive: function(cpu, context) {
-var socket = context["socket"];
-var data = context["data"];
-      if (data.username && data.password) {
-        runtime.log('I like turtles!');
-        runtime.socketdata(socket).user.name = data.username;
-        runtime.socketdata(socket).user.authenticated = true;
-      } else {
-        runtime.log('I can\'t use that information u gave me!', data);
-      }
-    }
-  });
-  cpu.module("socket").on('logout', {
-    onreceive: function(cpu) {
+  onreceive: function(cpu) {
+    runtime.log('Client disconnected');
+  }
+});
+cpu.module("socket").on('test', {
+  onreceive: function(cpu, context) {
+    var socket = context["socket"];
+    runtime.log('Someone successfully tested something!');
+  }
+});
+cpu.module("socket").on('login', {
+  onreceive: function(cpu, context) {
+    var socket = context["socket"];
+    var data = context["data"];
+    if (data.username && data.password) {
+      runtime.log('I like turtles!');
+      runtime.socketdata(socket).user.name = data.username;
       runtime.socketdata(socket).user.authenticated = true;
-      runtime.socketdata(socket).user = undefined;
+    } else {
+      runtime.log('I can\'t use that information u gave me!', data);
     }
-  });
-  cpu.module("socket").on('update', {
-    onreceive: function(cpu) {
-      cpu.module("socket").emit("poll");
+  }
+});
+cpu.module("socket").on('logout', {
+  onreceive: function(cpu, socket) {
+    var socket = context["socket"];
+    runtime.socketdata(socket).user.authenticated = true;
+    runtime.socketdata(socket).user = undefined;
+  }
+});
+cpu.module("socket").on('update', {
+  onreceive: function(cpu, context) {
+    var socket = context["socket"];
+    cpu.module("socket").emit("poll");
+  }
+});
+cpu.module("socket").on('log', {
+  onreceive: function(cpu, context) {
+    var socket = context["socket"];
+    var data = context["data"];
+    if (!!data["log"]) {
+      runtime.clients[socket.id]["logger"].log(data["log"]);
+      cpu.module("socket").emit("onlog"); //TODO just to socket.id
     }
-  });
-  cpu.module("socket").on('log', {
-    onreceive: function(cpu, context) {
-var socket = context["socket"];
-var data = context["data"];
-      if (!!data["log"]) {
-        runtime.clients[socket.id]["logger"].log(data["log"]);
-        cpu.module("socket").emit("onlog"); //TODO just to socket.id
-      }
-    }
-  });
-  cpu.module("socket").on('get_logs', {
-    onreceive: function(cpu) {
-      var clients = {};
-      for (var k in runtime.clients) {
-        if (runtime.clients.hasOwnProperty(k)) {
-          var logs = runtime.clients[k]["logger"].getLogs();
-          if (logs.length > 0) {
-            clients[k] = {
-              name: (!!runtime.clients[k]["name"]) ? runtime.clients[k]["name"] : k,
-              logs: logs
-            };
-          }
+  }
+});
+cpu.module("socket").on('get_logs', {
+  onreceive: function(cpu, context) {
+    var socket = context["socket"];
+    var clients = {};
+    for (var k in runtime.clients) {
+      if (runtime.clients.hasOwnProperty(k)) {
+        var logs = runtime.clients[k]["logger"].getLogs();
+        if (logs.length > 0) {
+          clients[k] = {
+            name: (!!runtime.clients[k]["name"]) ? runtime.clients[k]["name"] : k,
+            logs: logs
+          };
         }
       }
-      cpu.module("socket").emit("get_logs", { 'server': runtime.serverlog.getLogs(), 'clients': clients }, socket.id);
     }
-  });
-  cpu.module("socket").on('get_config', {
-    onreceive: function(cpu) {
-      cpu.module("socket").emit("get_config", runtime.config, socket.id);
+    cpu.module("socket").emit("get_logs", { 'server': runtime.serverlog.getLogs(), 'clients': clients }, socket.id);
+  }
+});
+cpu.module("socket").on('get_config', {
+  onreceive: function(cpu, context) {
+    var socket = context["socket"];
+    cpu.module("socket").emit("get_config", runtime.config, socket.id);
+  }
+});
+cpu.module("socket").on('add_track', {
+  onreceive: function socketAddTrack(cpu, context) {
+    var socket = context["socket"];
+    var data = context["data"];
+    if(!runtime.userLoggedin(socket)) {
+      //return;
     }
-  });
-  cpu.module("socket").on('add_track', {
-    onreceive: function socketAddTrack(cpu, context) {
-var socket = context["socket"];
-var data = context["data"];
-      if(!runtime.userLoggedin(socket)) {
-        //return;
-      }
-      runtime.log(data);
-      if (data["service"] && data['path']) {
-        var track = new classes.Track(data['service'], data['path']);
-        if (track.service && track.path) {
-          if (track.service == "filesystem") {
-            if (!path.resolve('./public/songs', track.path).startsWith(path.resolve('./public/songs') + '/')) {
-              runtime.log('Invalid file path. The file must be inside the songs directory!');
-              return;
-            }
-            track.path = path.relative('./public/songs/filesystem/', path.resolve('./public/songs/filesystem/', track.path));
+    runtime.log(data);
+    if (data["service"] && data['path']) {
+      var track = new classes.Track(data['service'], data['path']);
+      if (track.service && track.path) {
+        if (track.service == "filesystem") {
+          if (!path.resolve('./public/songs', track.path).startsWith(path.resolve('./public/songs') + '/')) {
+            runtime.log('Invalid file path. The file must be inside the songs directory!');
+            return;
           }
-          if (track.service == "url") {
-            if (!track["path"].startsWith('http')) {
-              runtime.log('Invalid url path. The file must be a http ot https url!');
-              return;
-            }
+          track.path = path.relative('./public/songs/filesystem/', path.resolve('./public/songs/filesystem/', track.path));
+        }
+        if (track.service == "url") {
+          if (!track["path"].startsWith('http')) {
+            runtime.log('Invalid url path. The file must be a http ot https url!');
+            return;
           }
-          if(data["next"]) {
-            var pos = runtime.queue.isEmpty() ? 0 : runtime.queue.getCurrentPosition() + 1;
-            runtime.queue.add(new classes.Track(track.service, track.path, {time: track.time || undefined}), pos);
-            runtime.queue.next(pos);
-            runtime.playing = true;
-            cpu.module("socket").emit("poll");
-          } else {
-            var empty = runtime.queue.isEmpty();
-            runtime.queue.add(new classes.Track(track.service, track.path, {time: track.time || undefined}));
-            if (empty) {
-              cpu.module("socket").emit('poll');
-            }
-          }
-          cpu.module("socket").emit("poll", {}, socket.id);
+        }
+        if(data["next"]) {
+          var pos = runtime.queue.isEmpty() ? 0 : runtime.queue.getCurrentPosition() + 1;
+          runtime.queue.add(new classes.Track(track.service, track.path, {time: track.time || undefined}), pos);
+          runtime.queue.next(pos);
+          runtime.playing = true;
+          cpu.module("socket").emit("poll");
         } else {
-          runtime.log('This doesn\'t seem to be a valid track.');
+          var empty = runtime.queue.isEmpty();
+          runtime.queue.add(new classes.Track(track.service, track.path, {time: track.time || undefined}));
+          if (empty) {
+            cpu.module("socket").emit('poll');
+          }
         }
+        cpu.module("socket").emit("poll");
       } else {
-        runtime.log('What do you want from me?');
+        runtime.log('This doesn\'t seem to be a valid track.');
       }
+    } else {
+      runtime.log('What do you want from me?');
     }
-  });
-  cpu.module("socket").on('delete_track', {
-    onreceive: function socketDeleteTrack(cpu, context) {
-var socket = context["socket"];
-var data = context["data"];
-      if (data.id) {
-        current = runtime.queue.getCurrentPosition();
-        var i = runtime.queue.del(data.id);
-        if (runtime.queue.isEmpty()) {
-          runtime.playing = false;
-        }
-        if (current == i) {
-          cpu.module("socket").emit('poll');
-        }
-      } else {
-        runtime.log('This track seems to be missing a id.');
+  }
+});
+cpu.module("socket").on('delete_track', {
+  onreceive: function socketDeleteTrack(cpu, context) {
+    var socket = context["socket"];
+    var data = context["data"];
+    if (data.id) {
+      current = runtime.queue.getCurrentPosition();
+      var i = runtime.queue.del(data.id);
+      if (runtime.queue.isEmpty()) {
+        runtime.playing = false;
       }
-    }
-  });
-  cpu.module("socket").on('reorder_track', {
-    onreceive:function socketReorderTrack(cpu, context) {
-var socket = context["socket"];
-var data = context["data"];
-      if (data.a && data.b) {
-        runtime.queue.swap(data.a, data.b);
+      if (current == i) {
         cpu.module("socket").emit('poll');
-      } else {
-        runtime.log('What did you try to achieve?');
       }
+    } else {
+      runtime.log('This track seems to be missing a id.');
     }
-  });
-  cpu.module("socket").on('get_queue', {
-    onreceive: function socketGetQueue(cpu, context) {
-var socket = context["socket"];
-var data = context["data"];
-      cpu.module("socket").emit('get_queue', {
-        "queue": runtime.queue.list(),
-        "currentTrack": runtime.queue.getCurrentTrack(),
-        "repeat": runtime.queue.getRepeat(),
-        "shuffle": runtime.queue.getShuffle()
-      }, socket.id);
+  }
+});
+cpu.module("socket").on('reorder_track', {
+  onreceive:function socketReorderTrack(cpu, context) {
+    var socket = context["socket"];
+    var data = context["data"];
+    if (data.a && data.b) {
+      runtime.queue.swap(data.a, data.b);
+      cpu.module("socket").emit('poll');
+    } else {
+      runtime.log('What did you try to achieve?');
     }
-  });
-  cpu.module("socket").on('get_playlist', {
-    onreceive: function(cpu, context) {
-var socket = context["socket"];
-var data = context["data"];
-     if(!!data["name"]) {
-       cpu.module("socket").emit('get_playlist_tracks', { "playlist": data["name"], "tracks": runtime.playlists[data['name']].tracks}, socket.id);
-     } else {
-		   var playlistnames = [];
-		   for (var key in runtime.playlists) {
-			    playlistnames.insert(key);
-		   }
-		   cpu.module("socket").emit('get_playlist', {"playlists": playlistnames}, socket.id);
-       }
+  }
+});
+cpu.module("socket").on('get_queue', {
+  onreceive: function socketGetQueue(cpu, context) {
+    var socket = context["socket"];
+    var data = context["data"];
+    cpu.module("socket").emit('get_queue', {
+      "queue": runtime.queue.list(),
+      "currentTrack": runtime.queue.getCurrentTrack(),
+      "repeat": runtime.queue.getRepeat(),
+      "shuffle": runtime.queue.getShuffle()
+    }, socket.id);
+  }
+});
+cpu.module("socket").on('get_playlist', {
+  onreceive: function(cpu, context) {
+   var socket = context["socket"];
+   var data = context["data"];
+   if(!!data["name"]) {
+     cpu.module("socket").emit('get_playlist_tracks', { "playlist": data["name"], "tracks": runtime.playlists[data['name']].tracks}, socket.id);
+   } else {
+	   var playlistnames = [];
+	   for (var key in runtime.playlists) {
+		    playlistnames.insert(key);
+	   }
+	   cpu.module("socket").emit('get_playlist', {"playlists": playlistnames}, socket.id);
+     }
+  }
+});
+cpu.module("socket").on('clear_queue', {
+  onreceive: function socketClearQueue(cpu, context) {
+    var socket = context["socket"];
+    runtime.queue.clear();
+    runtime.playback_time = 0;
+    runtime.playing = false;
+    cpu.module("socket").emit("poll");
+  }
+});
+cpu.module("socket").on('get_current_track', {
+  onreceive: function socketCurrentTrack(cpu, context) {
+    var socket = context["socket"];
+    cpu.module("socket").emit('get_current_track', {'currentTrack': runtime.queue.getCurrentTrack(), 'time': runtime.playback_time, 'playing': runtime.playing, 'changed': runtime.queue.getTrackChanged() }, socket.id);
+  }
+});
+cpu.module("socket").on('next', {
+  onreceive: function socketNextElement(cpu, context) {
+    var socket = context["socket"];
+    var data = context["data"];
+    runtime.queue.next(undefined, (!!data && !!data["force"]));
+    runtime.playback_time = 0;
+    cpu.module("socket").emit("poll");
+  }
+});
+cpu.module("socket").on('prev', {
+  onreceive: function socketPrevElement(cpu, context) {
+    var socket = context["socket"];
+    runtime.queue.prev();
+    runtime.playback_time = 0;
+    cpu.module("socket").emit('poll');
+  }
+});
+cpu.module("socket").on('current_Time', {
+  onreceive: function onCurrentTime(cpu, context) {
+    var socket = context["socket"];
+    var data = context["data"];
+    if (!!data["time"]) {
+      runtime.playback_time = data["time"];
     }
-  });
-  cpu.module("socket").on('clear_queue', {
-    onreceive: function socketClearQueue(cpu) {
-      runtime.queue.clear();
-      runtime.playback_time = 0;
-      runtime.playing = false;
+  }
+});
+cpu.module("socket").on('play', {
+  onreceive: function onPlay(cpu, context) {
+    var socket = context["socket"];
+    runtime.log("Play");
+    runtime.playing = true;
+    if (runtime.queue.getCurrentTrack() !== undefined) {
       cpu.module("socket").emit("poll");
     }
-  });
-  cpu.module("socket").on('get_current_track', {
-    onreceive: function socketCurrentTrack(cpu) {
-      //TODO with cpu.module
-      cpu.module("socket").emit('get_current_track', {'currentTrack': runtime.queue.getCurrentTrack(), 'time': runtime.playback_time, 'playing': runtime.playing, 'changed': runtime.queue.getTrackChanged() });
-    }
-  });
-  cpu.module("socket").on('next', {
-    onreceive: function socketNextElement(cpu, context) {
-var socket = context["socket"];
-var data = context["data"];
-      runtime.queue.next(undefined, (!!data && !!data["force"]));
-      runtime.playback_time = 0;
+  }
+});
+cpu.module("socket").on("pause", {
+  onreceive: function onPause(cpu, context) {
+    var socket = context["socket"];
+    runtime.log("Pause");
+    runtime.playing = false;
+    if (runtime.queue.getCurrentTrack() !== undefined) {
+      cpu.module("socket").emit("get_current_time");
       cpu.module("socket").emit("poll");
     }
-  });
-  cpu.module("socket").on('prev', {
-    onreceive: function socketPrevElement(cpu) {
-      runtime.queue.prev();
+  }
+});
+cpu.module("socket").on("stop", {
+  onreceive: function onStop(cpu, context) {
+    var socket = context["socket"];
+    runtime.queue.setCurrentPosition(-1);
+    runtime.playback_time = 0;
+    runtime.playing = false;
+    cpu.module("socket").emit("poll");
+  }
+});
+cpu.module("socket").on('isPlaying', {
+  onreceive: function onIsPlaying(cpu, context) {
+    var socket = context["socket"];
+    cpu.module("socket").emit('isPlaying', {'playing': runtime.playing}, socket.id);
+  }
+});
+cpu.module("socket").on('save_queue_to_playlist', {
+  onreceive: function onSaveQueueAsPlaylist(cpu, context){
+    var socket = context["socket"];
+    var data = context["data"];
+    runtime.queue.saveQueueAsPlaylist(data.playlistname);
+    cpu.module("socket").emit("poll");
+  }
+});
+cpu.module("socket").on('delete_playlist', {
+  onreceive: function socketDeletePlaylist(cpu, context){
+    var socket = context["socket"];
+    var data = context["data"];
+    if (!!runtime.playlists[data.name]) {
+      delete runtime.playlists[data.name];
+      fs.writeFile('playlists.json', JSON.stringify(runtime.playlists), 'utf-8');
+      cpu.module("socket").emit("poll");
+    }
+  }
+});
+cpu.module("socket").on('getFiles', {
+  onreceive: function getFiles(cpu, context) {
+    var socket = context["socket"];
+    cpu.module("socket").emit('getFiles', {'files': runtime.getFiles()}, socket.id);
+  }
+});
+cpu.module("socket").on('playPlaylist', {
+  onreceive: function onPlayPlaylist(cpu, context) {
+    var socket = context["socket"];
+    var data = context["data"];
+    if (data.name != '' && data.playing) {
+      runtime.queue.loadQueueFromPlaylist(data.name);
       runtime.playback_time = 0;
+      runtime.playing = data.playing;
       cpu.module("socket").emit('poll');
     }
-  });
-  cpu.module("socket").on('current_Time', {
-    onreceive: function onCurrentTime(cpu, context) {
-var socket = context["socket"];
-var data = context["data"];
-      if (!!data["time"]) {
-        runtime.playback_time = data["time"];
-      }
-    }
-  });
-  cpu.module("socket").on('play', {
-    onreceive: function onPlay(cpu) {
-      runtime.log("Play");
-      runtime.playing = true;
-      if (runtime.queue.getCurrentTrack() !== undefined) {
+  }
+});
+cpu.module("socket").on('playtrack', {
+  onreceive: function onPlaySelectedTrack(cpu, context) {
+    var socket = context["socket"];
+    var data = context["data"];
+    if (data.id) {
+      i = runtime.queue.getPos(data.id);
+      if (i >= 0) {
+        runtime.playback_time=0;
+        runtime.playing = true;
+        runtime.queue.setCurrentPosition(i);
         cpu.module("socket").emit("poll");
       }
     }
-  });
-  cpu.module("socket").on("pause", {
-    onreceive: function onPause(cpu) {
-      runtime.log("Pause");
-      runtime.playing = false;
-      if (runtime.queue.getCurrentTrack() !== undefined) {
-        cpu.module("socket").emit("get_current_time");
-        cpu.module("socket").emit("poll");
-      }
-    }
-  });
-  cpu.module("socket").on("stop", {
-    onreceive: function onStop(cpu) {
-      runtime.queue.setCurrentPosition(-1);
-      runtime.playback_time = 0;
-      runtime.playing = false;
-      cpu.module("socket").emit("poll");
-    }
-  });
-  cpu.module("socket").on('isPlaying', {
-    onreceive: function onIsPlaying(cpu) {
-      cpu.module("socket").emit('isPlaying', {'playing': runtime.playing}, socket.id);
-    }
-  });
-  cpu.module("socket").on('save_queue_to_playlist', {
-    onreceive: function onSaveQueueAsPlaylist(cpu, data){
-      runtime.queue.saveQueueAsPlaylist(data.playlistname);
-      cpu.module("socket").emit("poll");
-    }
-  });
-  cpu.module("socket").on('delete_playlist', {
-    onreceive: function socketDeletePlaylist(cpu, data){
-      if (!!runtime.playlists[data.name]) {
-        delete runtime.playlists[data.name];
-        fs.writeFile('playlists.json', JSON.stringify(runtime.playlists), 'utf-8');
-        cpu.module("socket").emit("poll");
-      }
-    }
-  });
-  cpu.module("socket").on('getFiles', {
-    onreceive: function getFiles(cpu) {
-      cpu.module("socket").emit('getFiles', {'files': runtime.getFiles()});
-    }
-  });
-  cpu.module("socket").on('playPlaylist', {
-    onreceive: function onPlayPlaylist(cpu, context) {
-var socket = context["socket"];
-var data = context["data"];
-      if (data.name != '' && data.playing) {
-        runtime.queue.loadQueueFromPlaylist(data.name);
-        runtime.playback_time = 0;
-        runtime.playing = data.playing;
-        cpu.module("socket").emit('poll');
-      }
-    }
-  });
-  cpu.module("socket").on('playtrack', {
-    onreceive: function onPlaySelectedTrack(cpu, context) {
-var socket = context["socket"];
-var data = context["data"];
-      if (data.id) {
-        i = runtime.queue.getPos(data.id);
-        if (i >= 0) {
-          runtime.playback_time=0;
-          runtime.playing = true;
-          runtime.queue.setCurrentPosition(i);
-          cpu.module("socket").emit("poll");
-        }
-      }
-    }
-  });
-  cpu.module("socket").on('toggleShuffle', {
-    onreceive: function onToggleShuffle(cpu) {
-      runtime.queue.setShuffle(!runtime.queue.getShuffle());
-    }
-  });
-  cpu.module("socket").on('toggleRepeat', {
-    onreceive: function onToggleRepeat(cpu) {
-      runtime.queue.setRepeat((runtime.queue.getRepeat() + 1) % 3);
-    }
-  });
-  cpu.module("socket").on('chpos_of_track', {
-    onreceive: function onChangeTrackPos(cpu, context) {
-var socket = context["socket"];
-var data = context["data"];
-      runtime.log(data);
-      if (data.id && data.newpos != undefined && data.newpos >= 0 && data.newpos < runtime.queue.size()) {
-        var i = runtime.queue.getPos(data.id);
-        if (i >= 0) {
-          var track = runtime.queue.get(i);
-          runtime.queue.del(data.id);
-          runtime.queue.add(track, data.newpos);
-          if (runtime.queue.getCurrentPosition() == i) {
-            runtime.queue.setCurrentPosition(data.newpos);
-          }
-        }
-      }
-    }
-  });
-  cpu.module("socket").on('seek', {
-    onreceive: function onSeek(cpu, context) {
-var socket = context["socket"];
-var data = context["data"];
-      if (data && data.position && data.position >= 0) {
-        console.log(data.position);
-        runtime.playback_time = data.position;
-        socket.module("socket").emit("poll");
-      }
-    }
-  });
-  cpu.module("socket").on('getDuration', {
-    onreceive: function onGetDuration(cpu, context) {
-var socket = context["socket"];
-var data = context["data"];
-      if (data && data.id) {
-        var i = runtime.queue.getPos(data.id);
-        if (i >= 0) {
-          cpu.module("socket").emit('getDuration', {'duration': runtime.queue.get(i).getDuration() }, socket.id);
-        }
-      } else {
-        cpu.module("socket").emit('getDuration', {'duration': runtime.queue.getCurrentTrack().getDuration() }, socket.id);
-      }
-    }
-  });
-  cpu.module("socket").on('setDuration', {
-    onreceive: function onSetDuration(cpu, context) {
-var socket = context["socket"];
-var data = context["data"];
-      changed = false;
-      if (data.duration && data.duration >= 0) {
-        if (data.id) {
-          var i = runtime.queue.getPos(data.id);
-          if (i >= 0) {
-            changed = (runtime.queue.get(i).getDuration() != data.duration);
-            runtime.queue.get(i).setDuration(data.duration);
-          }
-        } else {
-          changed = (runtime.queue.getCurrentTrack().getDuration() != data.duration);
-          runtime.queue.getCurrentTrack().setDuration(data.duration);
-        }
-        if (changed) {
-          cpu.module("socket").emit("durationChanged");
-        }
-      }
-    }
-  });
-  cpu.module("socket").on('getPlaybackTime', {
-    onreceive: function onGetPlaybackTime(cpu, context) {
-var socket = context["socket"];
-var data = context["data"];
-      /*
-      if (data.id) {
-        var i = runtime.queue.getPos(data.id);
-        if (i >= 0) {
-        io.to(socket.id).emit('getPlaybackTime', {'time': runtime.queue.get(i) });
-      }
-      } else {
-      io.to(socket.id).emit('getPlaybackTime', {'time': runtime.queue.getCurrentTrack() });
-      }
-      */
-      cpu.module("socket").emit('getPlaybackTime', {'time': runtime.playback_time }, socket.id);
-    }
-  });
-  cpu.module("socket").on('setPlaybackTime', {
-    onreceive: function onSetPlaybackTime(cpu, context) {
-var socket = context["socket"];
-var data = context["data"];
-      /*
-      if (data.id) {
+  }
+});
+cpu.module("socket").on('toggleShuffle', {
+  onreceive: function onToggleShuffle(cpu, context) {
+    var socket = context["socket"];
+    runtime.queue.setShuffle(!runtime.queue.getShuffle());
+  }
+});
+cpu.module("socket").on('toggleRepeat', {
+  onreceive: function onToggleRepeat(cpu, context) {
+    var socket = context["socket"];
+    runtime.queue.setRepeat((runtime.queue.getRepeat() + 1) % 3);
+  }
+});
+cpu.module("socket").on('chpos_of_track', {
+  onreceive: function onChangeTrackPos(cpu, context) {
+    var socket = context["socket"];
+    var data = context["data"];
+    runtime.log(data);
+    if (data.id && data.newpos != undefined && data.newpos >= 0 && data.newpos < runtime.queue.size()) {
       var i = runtime.queue.getPos(data.id);
       if (i >= 0) {
-      runtime.queue.get(i).setPlaybackTime(data.time);
+        var track = runtime.queue.get(i);
+        runtime.queue.del(data.id);
+        runtime.queue.add(track, data.newpos);
+        if (runtime.queue.getCurrentPosition() == i) {
+          runtime.queue.setCurrentPosition(data.newpos);
+        }
       }
-      } else {
-        runtime.queue.getCurrentTrack().setPlaybackTime(data.time);
-      }
-      */
-      if (data.time) {
-        runtime.playback_time = data.time;
-      }
-      cpu.module("socket").emit("playbackTimeChanged");
     }
-  });
+  }
+});
+cpu.module("socket").on('seek', {
+  onreceive: function onSeek(cpu, context) {
+    var socket = context["socket"];
+    var data = context["data"];
+    if (data && data.position && data.position >= 0) {
+      console.log(data.position);
+      runtime.playback_time = data.position;
+      socket.module("socket").emit("poll");
+    }
+  }
+});
+cpu.module("socket").on('getDuration', {
+  onreceive: function onGetDuration(cpu, context) {
+    var socket = context["socket"];
+    var data = context["data"];
+    if (data && data.id) {
+      var i = runtime.queue.getPos(data.id);
+      if (i >= 0) {
+        cpu.module("socket").emit('getDuration', {'duration': runtime.queue.get(i).getDuration() }, socket.id);
+      }
+    } else {
+      cpu.module("socket").emit('getDuration', {'duration': runtime.queue.getCurrentTrack().getDuration() }, socket.id);
+    }
+  }
+});
+cpu.module("socket").on('setDuration', {
+  onreceive: function onSetDuration(cpu, context) {
+    var socket = context["socket"];
+    var data = context["data"];
+    changed = false;
+    if (data.duration && data.duration >= 0) {
+      if (data.id) {
+        var i = runtime.queue.getPos(data.id);
+        if (i >= 0) {
+          changed = (runtime.queue.get(i).getDuration() != data.duration);
+          runtime.queue.get(i).setDuration(data.duration);
+        }
+      } else {
+        changed = (runtime.queue.getCurrentTrack().getDuration() != data.duration);
+        runtime.queue.getCurrentTrack().setDuration(data.duration);
+      }
+      if (changed) {
+        cpu.module("socket").emit("durationChanged");
+      }
+    }
+  }
+});
+cpu.module("socket").on('getPlaybackTime', {
+  onreceive: function onGetPlaybackTime(cpu, context) {
+    var socket = context["socket"];
+    var data = context["data"];
+    /*
+    if (data.id) {
+      var i = runtime.queue.getPos(data.id);
+      if (i >= 0) {
+      io.to(socket.id).emit('getPlaybackTime', {'time': runtime.queue.get(i) });
+    }
+    } else {
+    io.to(socket.id).emit('getPlaybackTime', {'time': runtime.queue.getCurrentTrack() });
+    }
+    */
+    cpu.module("socket").emit('getPlaybackTime', {'time': runtime.playback_time }, socket.id);
+  }
+});
+cpu.module("socket").on('setPlaybackTime', {
+  onreceive: function onSetPlaybackTime(cpu, context) {
+    var socket = context["socket"];
+    var data = context["data"];
+    /*
+    if (data.id) {
+    var i = runtime.queue.getPos(data.id);
+    if (i >= 0) {
+    runtime.queue.get(i).setPlaybackTime(data.time);
+    }
+    } else {
+      runtime.queue.getCurrentTrack().setPlaybackTime(data.time);
+    }
+    */
+    if (data.time) {
+      runtime.playback_time = data.time;
+    }
+    cpu.module("socket").emit("playbackTimeChanged");
+  }
+});

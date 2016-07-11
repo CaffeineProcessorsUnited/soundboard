@@ -1,4 +1,6 @@
 var Class = require("../class.js");
+const crypto = require("crypto");
+
 
 module.exports = Class({
   initialize: function(service, path, options) {

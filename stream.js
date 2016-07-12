@@ -48,13 +48,13 @@ var Stream = function (cpu, config) {
       	}
       	for (var k in _clients) {
       		if (_clients.hasOwnProperty(k) && _clients[k] !== undefined) {
-      			_clients[k].write(chunk);
+            _clients[k].write(chunk);
       		}
       	}
       })
       .on('end', function() {
         if (me == _latestStream) {
-          this._cpu.module("events").trigger("stream.end");
+          _cpu.module("events").trigger("stream.end");
         }
       }.bind(this));
     }
@@ -66,7 +66,7 @@ var Stream = function (cpu, config) {
         }
         var defaults = {
           bitDepth: 16,
-          sampleRate: 41100,
+          sampleRate: 44100,
           channels: 2
         };
         _cpu = cpu;
@@ -92,7 +92,7 @@ var Stream = function (cpu, config) {
     Stream.prototype.load = function(service, path) {
       this.stop();
       if (typeof service === "string" && _loaders[service] !== undefined) {
-        _loaders[service].call(this, path);
+        _loaders[service].call(this, this, path);
       } else {
         this.play(service);
       }

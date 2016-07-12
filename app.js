@@ -193,6 +193,24 @@ cpu.loadModule(require("./public/assets/js/cpu/util.cpu.js"), { "utils": require
 cpu.loadModule(require("./public/assets/js/cpu/events.cpu.js"));
 cpu.loadModule(require("./public/assets/js/cpu/socket.cpu.js"), { "io" : io, "server": true });
 
+
+var Speaker = require('speaker');
+var speaker = new Speaker({
+  channels: 2,          // 2 channels
+  bitDepth: 16,         // 16-bit samples
+  sampleRate: 44100     // 44,100 Hz sample rate
+});
+var loaders = require('./service.loaders.js')
+var stream = require('./stream.js')(cpu);
+stream.addClient("speaker", speaker);
+for (var k in loaders) {
+  if (typeof loaders[k] == 'function') {
+    stream.addLoader(k, loaders[k]);
+  }
+}
+stream.load("youtube", "gy1B3agGNxw");
+stream.play();
+
 io.on('connection', function ioOnConnection(socket) {
   runtime.clients[socket.id] = {
     logger: new classes.Logger()

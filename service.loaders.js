@@ -31,17 +31,18 @@ function createRequest(url, onresponse, onerror) {
 
 module.exports = {
 	"youtube": function(stream, path) {
-		var video = this.ytdl('http://youtube.com/watch?v=' + track.getPath(), {
+		var video = ytdl('http://youtube.com/watch?v=' + path, {
 			filter: function(format) {
 				return format.container === 'mp4';
 			},
 			quality: 'lowest'
 		});
+		console.log(path);
     stream.play(video);
 	},
 	"soundcloud": function(stream, path) {
 		scapikey = stream._cpu.module("config").get("services", "soundcloud", "apikey");
-		url = 'http://api.soundcloud.com/resolve?format=json&consumer_key=' + scapikey + '&url=' + encodeURIComponent(track.getPath());
+		url = 'http://api.soundcloud.com/resolve?format=json&consumer_key=' + scapikey + '&url=' + encodeURIComponent(path);
 		createRequest(url, function(res) {
 			res.setEncoding('utf8');
 			res.on('data', function(data) {

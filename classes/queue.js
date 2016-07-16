@@ -34,8 +34,8 @@ module.exports = Class({
     return this.queue[pos];
   },
   getPos: function(id){
-    for (var i = 0; i < runtime.queue.size(); i++) {
-      if (runtime.queue.get(i).getId() == id) {
+    for (var i = 0; i < this.size(); i++) {
+      if (this.get(i).getId() == id) {
         return i;
       }
     }
@@ -81,7 +81,6 @@ module.exports = Class({
               this.currentPos = 0;
             } else {
               this.currentPos = -1;
-              runtime.isPlaying = false;
             }
           }
         } else {
@@ -123,27 +122,11 @@ module.exports = Class({
   getTrackChanged: function() {
     return this.trackChanged;
   },
-  loadQueueFromPlaylist: function(name) {
-    if (runtime.playlists[name]) {
-      var self = this;
-      this.clear();
-      this.currentPos = 0;
-      runtime.playlists[name].tracks.forEach(function(trackinfo, i) {
-        self.add(new classes.Track(trackinfo.service, trackinfo.path, {idx: i}));
-      });
+  loadList: function(list) {
+    if (typeof list == "list") {
+      for ( var i=0; i<list.length; i++) {
+        this.add(list[i]);
+      }
     }
-  },
-  saveQueueAsPlaylist: function(name) {
-    runtime.playlists[name]={
-      tracks: []
-    }
-    this.queue.forEach(function(track) {
-      var trackinfo = {
-        service: track.getService(),
-        path:	track.getPath()
-      };
-      runtime.playlists[name].tracks.insert(trackinfo);
-    });
-    fs.writeFile('playlists.json', JSON.stringify(runtime.playlists), 'utf-8');
   }
 });

@@ -18,11 +18,17 @@ module.exports = Class({
     if(this.currentPos == -1){
       this.currentPos = 0;
     }
+    if(position <= this.currentPos) {
+      this.currentPos = this.currentPos + 1;
+    }
   },
   del: function(id) {
     for (var i = 0; i < this.queue.length; i++) {
       if (this.queue[i].getId() == id) {
         this.queue.delete(i);
+        if(i < this.getCurrentPosition()) {
+          this.currentPos -= 1;
+        }
         if (this.isEmpty()) {
           this.currentPos = -1;
         }

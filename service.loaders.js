@@ -20,7 +20,6 @@ function createRequest(url, onresponse, onerror) {
 		if (!r['response']) {
 			console.log("No headers set... abort the request");
 			r.abort();
-			startStream();
 		} else {
 			console.log("Header sent, we're streaming!");
 		}

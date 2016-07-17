@@ -435,7 +435,7 @@ cpu.module("socket").on('save_queue_to_playlist', {
     }
     console.log(playlist);
     cpu.module("runtime").set("playlists", data["playlistname"], "tracks", playlist);
-    fs.writeFile("playlist.json", JSON.stringify(cpu.module("runtime").get("playlists")), 'utf-8');
+    fs.writeFile("playlists.json", JSON.stringify(cpu.module("runtime").get("playlists")), 'utf-8');
     cpu.module("socket").emit("poll");
   }
 });
@@ -508,11 +508,15 @@ cpu.module("socket").on('chpos_of_track', {
     cpu.module("util").log(data);
     if (data.id && data.newpos != undefined && data.newpos >= 0 && data.newpos < cpu.module("runtime").get("queue").size()) {
       var i = cpu.module("runtime").get("queue").getPos(data.id);
+      var iscurrent = false;
+      if (i == cpu.module("runtime").get("queue").getCurrentPosition()){
+        iscurrent = true;
+      }
       if (i >= 0) {
         var track = cpu.module("runtime").get("queue").get(i);
         cpu.module("runtime").get("queue").del(data.id);
         cpu.module("runtime").get("queue").add(track, data.newpos);
-        if (cpu.module("runtime").get("queue").getCurrentPosition() == i) {
+        if(iscurrent) {
           cpu.module("runtime").get("queue").setCurrentPosition(data.newpos);
         }
       }

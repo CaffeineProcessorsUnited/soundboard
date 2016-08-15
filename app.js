@@ -121,8 +121,17 @@ cpu.module("runtime").set("started", new Date().getTime());
 cpu.module("runtime").set("queue", new classes.Queue());
 cpu.module("runtime").set("playback_time", 0);
 cpu.module("runtime").set("playing", false);
-cpu.module("runtime").set("config", JSON.parse(fs.readFileSync('config.json', 'utf8')));
-cpu.module("runtime").set("playlists", JSON.parse(fs.readFileSync('playlists.json', 'utf8')));
+try {
+  cpu.module("runtime").set("config", JSON.parse(fs.readFileSync('config.json', 'utf8')));
+} catch(e) {
+  console.error("You need to provide a configuration for the server to work properly!");
+  cpu.module("runtime").set("config", {});
+}
+try {
+  cpu.module("runtime").set("playlists", JSON.parse(fs.readFileSync('playlists.json', 'utf8')));
+} catch(e) {
+  cpu.module("runtime").set("playlists", {});
+}
 cpu.module("runtime").set("serverlog", new classes.Logger());
 cpu.module("runtime").set("clients", {});
 // TODO: rethink socketdata and userLoggedin

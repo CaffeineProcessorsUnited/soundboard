@@ -114,7 +114,8 @@ var Stream = function (cpu, config) {
     Stream.prototype.stop = function() {
       for (var k in _streams) {
     		if (_streams.hasOwnProperty(k) && _streams[k] != undefined) {
-    			_streams[k]["throttle"].end();
+          console.log("stopping " + k);
+    			_streams[k]["throttle"].destroy();
     			delete _streams[k];
     		}
     	}

@@ -417,6 +417,7 @@ cpu.module("socket").on("pause", {
 cpu.module("socket").on("stop", {
   onreceive: function onStop(cpu, context) {
     var socket = context["socket"];
+    cpu.module("util").log("Stop");
     cpu.module("runtime").get("queue").setCurrentPosition(-1);
     cpu.module("runtime").set("playback_time", 0);
     cpu.module("runtime").set("playing", false);

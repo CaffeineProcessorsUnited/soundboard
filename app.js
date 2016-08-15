@@ -606,3 +606,7 @@ cpu.module("socket").on('setPlaybackTime', {
     cpu.module("socket").emit("playbackTimeChanged");
   }
 });
+
+cpu.module("events").addEventListener("stream.end", function() {
+  cpu.module("util").log("Stream ended");
+});

@@ -25,6 +25,7 @@
     "socket.io": "^1.4.5",
     "socket.io-client": "^1.4.5",
     "speaker": "^0.3.0",
+    "stream-parser": "^0.3.1",
     "stream-transcoder": "0.0.5",
     "utf8": "^2.1.1",
     "ytdl-core": "^0.7.16"

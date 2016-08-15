@@ -1,7 +1,8 @@
 "use strict";
 // Stream.js
 
-var throttle = require('advanced-throttle');
+//var throttle = require('advanced-throttle');
+var throttle = require('./../node-advanced-throttle/throttle.js');
 var transcoder = require('stream-transcoder');
 var ytdl = require('ytdl-core');
 
@@ -40,9 +41,10 @@ var Stream = function (cpu, config) {
       var a = trans._compileArguments();
       a.push('pipe:1');
       var ffmpegstream = trans._exec(a);
-      ffmpegstream.stdout
-      .pipe(t)
-      .on('data', function(chunk) {
+      ffmpegstream.stdout.on('data', function(data) {
+        t.write(data);
+      });
+      t.on('data', function(chunk) {
         if (_latestStream != me) {
       		return;
       	}

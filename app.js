@@ -134,6 +134,11 @@ try {
 }
 cpu.module("runtime").set("serverlog", new classes.Logger());
 cpu.module("runtime").set("clients", {});
+try {
+  cpu.module("runtime").set("buttons", JSON.parse(fs.readFileSync('buttons.json', 'utf8')));
+} catch(e) {
+  cpu.module("runtime").set("buttons", {});
+}
 // TODO: rethink socketdata and userLoggedin
 /*
 *  cpu.module("runtime").set("socketdata", function(socket) {
@@ -157,7 +162,7 @@ var loaders = require('./service.loaders.js')
 var stream = require('./stream.js')(cpu);
 stream.addClient("speaker", speaker);
 for (var k in loaders) {
-  if (typeof loaders[k] == 'function') {
+  if (loaders.hasOwnProperty(k) && typeof loaders[k] == 'function') {
     stream.addLoader(k, loaders[k]);
   }
 }
@@ -268,7 +273,7 @@ cpu.module("socket").on('add_track', {
           cpu.module("runtime").set("playing", true);
           cpu.module("socket").emit("poll");
           var track = cpu.module("runtime").get("queue").getCurrentTrack();
-          stream.load(track.getService(), track.getPath());
+          stream.load(track);
         } else {
           var empty = cpu.module("runtime").get("queue").isEmpty();
           cpu.module("runtime").get("queue").add(new classes.Track(track.service, track.path, {time: track.time || undefined}));
@@ -369,7 +374,7 @@ cpu.module("socket").on('next', {
     cpu.module("runtime").set("playback_time", 0);
     cpu.module("socket").emit("poll");
     var track = cpu.module("runtime").get("queue").getCurrentTrack();
-    stream.load(track.getService(), track.getPath());
+    stream.load(track);
   }
 });
 cpu.module("socket").on('prev', {
@@ -379,7 +384,7 @@ cpu.module("socket").on('prev', {
     cpu.module("runtime").set("playback_time", 0);
     cpu.module("socket").emit('poll');
     var track = cpu.module("runtime").get("queue").getCurrentTrack();
-    stream.load(track.getService(), track.getPath());
+    stream.load(track);
   }
 });
 cpu.module("socket").on('current_Time', {
@@ -494,7 +499,7 @@ cpu.module("socket").on('playtrack', {
         cpu.module("runtime").get("queue").setCurrentPosition(i);
         cpu.module("socket").emit("poll");
         var track = cpu.module("runtime").get("queue").getCurrentTrack();
-        stream.load(track.getService(), track.getPath());
+        stream.load(track);
       }
     }
   }
@@ -616,7 +621,16 @@ cpu.module("socket").on('setPlaybackTime', {
     cpu.module("socket").emit("playbackTimeChanged");
   }
 });
-
+cpu.module("socket").on('buttonpressed', {
+  onreceive: function onSetPlaybackTime(cpu, context) {
+    var socket = context["socket"];
+    var data = context["data"];
+    var buttons = cpu.module("runtime").get("buttons");
+    if (buttons && buttons[data["id"]]) {
+      // play over stream
+    }
+  }
+});
 cpu.module("events").addEventListener("stream.end", function() {
   cpu.module("util").log("Stream ended");
 });

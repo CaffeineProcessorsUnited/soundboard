@@ -26,16 +26,20 @@ var Stream = function (cpu, config) {
       var me = 0 + _latestStream;
       var bitrate = _config["bitDepth"] * _config["sampleRate"] * _config["channels"];
       var t = new throttle({ bps: bitrate / 8 });
-      _streams[me] = { throttle: t, input: input };
+      _streams[me] = { throttle: t, input: input["stream"] };
 
-      var trans = new transcoder(input)
+      var trans = new transcoder(input["stream"])
       .format('s' + _config["bitDepth"] + 'le')
       .sampleRate(_config["sampleRate"])
       .channels(_config["channels"])
       .audioBitrate(bitrate)
       .on('error', function() {
         console.error("Error while transcoding!");
-        this._cpu.module("events").trigger("stream.end");
+        this.cpu().module("events").trigger("stream.end");
+      })
+      .on('metadata', function(metadata) {
+        // metadata.input.duration = duration in milliseconds
+        input["track"].setDuration(Math.floor(metadata.input.duration / 1000));
       });
       var a = trans._compileArguments();
       a.push('pipe:1');
@@ -74,6 +78,10 @@ var Stream = function (cpu, config) {
         _config = _cpu.extend(defaults, config || {});
     }
 
+    Stream.prototype.cpu = function() {
+      return _cpu;
+    }
+
     Stream.prototype.addLoader = function(service, loader) {
       _loaders[service] = loader;
     };
@@ -90,12 +98,12 @@ var Stream = function (cpu, config) {
       delete _clients[id];
     };
 
-    Stream.prototype.load = function(service, path) {
+    Stream.prototype.load = function(track) {
       this.stop();
+      var service = track.getService();
+      var path = track.getPath();
       if (typeof service === "string" && _loaders[service] !== undefined) {
-        _loaders[service].call(this, this, path);
-      } else {
-        this.play(service);
+        _loaders[service].call(this, this, track);
       }
     };
 

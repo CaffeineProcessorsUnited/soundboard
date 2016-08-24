@@ -10,7 +10,7 @@ function createRequest(url, onresponse, onerror) {
 		console.log("You didn't handle the response! What are you tring to do?");
 	};
 	var r = request({
-		url: url,
+		url: encodeURI(url),
 		forever: true
 	});
 	r.on('error', onerror);
@@ -27,21 +27,19 @@ function createRequest(url, onresponse, onerror) {
 	return { request: r, timeout: t };
 }
 
-
 module.exports = {
-	"youtube": function(stream, path) {
-		var video = ytdl('http://youtube.com/watch?v=' + path, {
+	"youtube": function(stream, track) {
+		var video = ytdl('http://youtube.com/watch?v=' + encodeURI(track.getPath()), {
 			filter: function(format) {
 				return format.container === 'mp4';
 			},
 			quality: 'lowest'
 		});
-		console.log(path);
-    stream.play(video);
+    stream.play({ "stream": video, "track": track });
 	},
-	"soundcloud": function(stream, path) {
-		scapikey = stream._cpu.module("config").get("services", "soundcloud", "apikey");
-		url = 'http://api.soundcloud.com/resolve?format=json&consumer_key=' + scapikey + '&url=' + encodeURIComponent(path);
+	"soundcloud": function(stream, track) {
+		scapikey = stream.cpu().module("config").get("services", "soundcloud", "apikey");
+		url = 'http://api.soundcloud.com/resolve?format=json&consumer_key=' + scapikey + '&url=' + encodeURI(track.getPath());
 		createRequest(url, function(res) {
 			res.setEncoding('utf8');
 			res.on('data', function(data) {
@@ -49,7 +47,7 @@ module.exports = {
 					json = JSON.parse(data);
 					if (!!json["stream_url"] && !!json["streamable"]) {
             src = json["stream_url"] + (/\?/.test(json["stream_url"]) ? '&' : '?') + 'consumer_key=' + scapikey;
-						stream.play(src);
+						stream.play({ "stream": src, "track": track });
           } else {
             //next();
           }
@@ -59,15 +57,12 @@ module.exports = {
 			});
     });
 	},
-	"url": function (stream, path){
-		createRequest(path, function(res) {
-      stream.play(res);
+	"url": function (stream, track){
+		createRequest(encodeURI(track.getPath()), function(res) {
+      stream.play({ "stream": res, "track": track });
     });
 	},
-	"filesystem": function (stream, path) {
-		probe(path, function(err, data) {
-			//var bps = data.format.bit_rate / 8; // bitrate / 8 => byterate
-			stream.play(fs.createReadStream(path));
-		});
+	"filesystem": function (stream, track) {
+		stream.play({ "stream": fs.createReadStream(track.getPath()), "track": track });
 	}
 }

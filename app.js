@@ -28,8 +28,8 @@ Array.prototype.delete = function(from, to) {
 };
 
 Array.prototype.insert = function(item, position) {
-  if (position!=undefined) {
-    if(position<0){
+  if (position != undefined) {
+    if (position < 0){
       position = 0;
     }
     this.splice(position, 0, item);

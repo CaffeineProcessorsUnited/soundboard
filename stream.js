@@ -39,7 +39,11 @@ var Stream = function (cpu, config) {
       })
       .on('metadata', function(metadata) {
         // metadata.input.duration = duration in milliseconds
-        input["track"].setDuration(Math.floor(metadata.input.duration / 1000));
+        var duration = metadata.input.duration / 1000;
+        if (duration != input["track"].getDuration()) {
+          input["track"].setDuration(Math.floor(duration));
+          this.cpu().module("socket").emit("durationChanged");
+        }
       });
       var a = trans._compileArguments();
       a.push('pipe:1');

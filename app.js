@@ -13,7 +13,13 @@ var io = require('socket.io')(server);
 var ioc = require('socket.io-client');
 var childProcess = require('child_process')
 
-var debug = true;
+var debug = false;
+
+if (debug) {
+  console.log = function() {
+    console.trace.apply(this, arguments);
+  };
+}
 
 console.log(path.resolve("./"));
 process.chdir(__dirname);

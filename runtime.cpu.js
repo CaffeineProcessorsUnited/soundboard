@@ -97,7 +97,7 @@
       		}
     		}
   		} catch(e) {
-    		this.cpu.module("util").log("Couldn't read files" + e);
+    		// do nothing
   		}
   		return list;
 		};

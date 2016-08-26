@@ -16,7 +16,7 @@
   },
   "homepage": "https://github.com/CaffeineProcessorsUnited/soundboard#readme",
   "dependencies": {
-    "advanced-throttle": "^1.3.0",
+    "advanced-throttle": "^1.3.3",
     "body-parser": "^1.15.0",
     "caller-id": "^0.1.0",
     "es6-shim": "^0.35.1",

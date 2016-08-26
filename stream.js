@@ -39,9 +39,9 @@ var Stream = function (cpu, config) {
       })
       .on('metadata', function(metadata) {
         // metadata.input.duration = duration in milliseconds
-        var duration = metadata.input.duration / 1000;
+        var duration = Math.floor(metadata.input.duration / 1000);
         if (duration != input["track"].getDuration()) {
-          input["track"].setDuration(Math.floor(duration));
+          input["track"].setDuration(duration);
           this.cpu().module("socket").emit("durationChanged");
         }
       }.bind(this));
@@ -61,19 +61,18 @@ var Stream = function (cpu, config) {
       		}
       	}
       })
-      .on('playback_time', function() {
+      .on('timechanged', function(time) {
         if (_latestStream != me) {
       		return;
       	}
-        var currentTime = this.getWrittenTime()
-        if (currentTime >= input["track"].getDuration()) {
+        if (input["track"].getDuration() >= 0 && time >= input["track"].getDuration()) {
           _cpu.module("util").log("next");
           _cpu.module("events").trigger("socket.receive.next", { 'data': { 'force': true } });
-          currentTime = 0
-          _latestStream = 0
+          this.pauseStream();
+        } else {
+        _cpu.module("runtime").set("playback_time", time);
+          _cpu.module("socket").emit("playbackTimeChanged");
         }
-        _cpu.module("runtime").set("playback_time", currentTime);
-        _cpu.module("socket").emit("playbackTimeChanged")
       })
       .on('end', function() {
         if (me == _latestStream) {

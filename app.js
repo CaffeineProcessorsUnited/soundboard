@@ -1,4 +1,3 @@
-// @flow
 const util = require('util');
 const fs = require('fs');
 const path = require('path');
@@ -368,8 +367,9 @@ cpu.module("socket").on('get_current_track', {
 });
 cpu.module("socket").on('next', {
   onreceive: function socketNextElement(cpu, context) {
-    var socket = context["socket"];
-    var data = context["data"];
+    //var socket = context["socket"];
+    var data = context["data"] || {};
+    cpu.module("util").log(data)
     cpu.module("runtime").get("queue").next(undefined, (!!data && !!data["force"]));
     cpu.module("runtime").set("playback_time", 0);
     cpu.module("socket").emit("poll");

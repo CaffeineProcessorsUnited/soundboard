@@ -1,7 +1,7 @@
 "use strict";
 // Stream.js
 
-var throttle = require('advanced-throttle');
+var throttle = require('../node-advanced-throttle/throttle.js');
 var transcoder = require('stream-transcoder');
 var ytdl = require('ytdl-core');
 
@@ -35,7 +35,7 @@ var Stream = function (cpu, config) {
       .audioBitrate(bitrate)
       .on('error', function() {
         console.error("Error while transcoding!");
-        this.cpu().module("events").trigger("stream.end");
+        _cpu.module("events").trigger("stream.end");
       })
       .on('metadata', function(metadata) {
         // metadata.input.duration = duration in milliseconds
@@ -44,7 +44,7 @@ var Stream = function (cpu, config) {
           input["track"].setDuration(Math.floor(duration));
           this.cpu().module("socket").emit("durationChanged");
         }
-      });
+      }.bind(this));
       var a = trans._compileArguments();
       a.push('pipe:1');
       var ffmpegstream = trans._exec(a);
@@ -60,6 +60,20 @@ var Stream = function (cpu, config) {
             _clients[k].write(chunk);
       		}
       	}
+      })
+      .on('playback_time', function() {
+        if (_latestStream != me) {
+      		return;
+      	}
+        var currentTime = this.getWrittenTime()
+        if (currentTime >= input["track"].getDuration()) {
+          _cpu.module("util").log("next");
+          _cpu.module("events").trigger("socket.receive.next", { 'data': { 'force': true } });
+          currentTime = 0
+          _latestStream = 0
+        }
+        _cpu.module("runtime").set("playback_time", currentTime);
+        _cpu.module("socket").emit("playbackTimeChanged")
       })
       .on('end', function() {
         if (me == _latestStream) {

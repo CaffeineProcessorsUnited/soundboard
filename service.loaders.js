@@ -67,6 +67,7 @@ module.exports = {
 		stream.play({ "stream": fs.createReadStream(track.getPath()), "track": track });
 	},
 	"spotify": function (stream, track) {
+		//Spotify put a captcha on int site until the library supports the this this loader wont work
 		username = stream.cpu().module("config").get("services", "spotify", "username");
 		password = stream.cpu().module("config").get("services", "spotify", "password");
 		spotify.login(username, password, function(err, session) {

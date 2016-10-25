@@ -13,7 +13,7 @@ var Stream = function (cpu, config) {
     var _loaders = {};
     var _cpu;
 
-    var streamThroughFFmpeg = function(input) {
+    var streamThroughFFmpeg = function(input, eventlisteners = undefined) {
       if (input === undefined) {
         console.error("Empty stream");
         return;
@@ -45,6 +45,13 @@ var Stream = function (cpu, config) {
           this.cpu().module("socket").emit("durationChanged");
         }
       }.bind(this));
+      if (eventlisteners !== undefined) {
+        for (var ev in eventlisteners) {
+          if (eventlisteners.hasOwnProperty(ev) && typeof(ev) === 'string' &&typeof(eventlisteners[ev]) === 'function') {
+              trans.on(ev, eventlisteners[ev]);
+          }
+        }
+      }
       var a = trans._compileArguments();
       a.push('pipe:1');
       var ffmpegstream = trans._exec(a);
@@ -124,9 +131,9 @@ var Stream = function (cpu, config) {
       }
     };
 
-    Stream.prototype.play = function(input) {
+    Stream.prototype.play = function(input, eventlisteners = undefined) {
       if (input !== undefined) {
-        streamThroughFFmpeg.call(this, input);
+        streamThroughFFmpeg.call(this, input, eventlisteners);
       } else {
         _streams[_latestStream]["throttle"].resumeStream();
       }

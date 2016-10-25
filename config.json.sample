@@ -35,6 +35,23 @@
       "password": "bar"
     }
   },
+  "output": {
+    "speakers": {
+      "name": "speaker",
+      "output": true
+    },
+    "mumble":{
+      "name": "mumble",
+      "server": "mygamehub.de",
+      "username": "Soundboard",
+      "output": false
+    },
+    "http":{
+      "name": "http",
+      "port": 7777,
+      "output": false
+    }
+  },
   "users": {
     "0": {
       "name": "Admin",

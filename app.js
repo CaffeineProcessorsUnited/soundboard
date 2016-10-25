@@ -144,6 +144,9 @@ try {
 } catch(e) {
   cpu.module("runtime").set("buttons", {});
 }
+
+cpu.loadModule(require("./public/assets/js/cpu/config.cpu.js"));
+cpu.module("config").load(cpu.module("runtime").get("config"));
 // TODO: rethink socketdata and userLoggedin
 /*
 *  cpu.module("runtime").set("socketdata", function(socket) {
@@ -171,6 +174,7 @@ for (var k in loaders) {
     stream.addLoader(k, loaders[k]);
   }
 }
+stream.load(new classes.Track("spotify", "spotify:track:0dqWPH0V3lCH4Z7KUgOi7K"))
 
 io.on('connection', function ioOnConnection(socket) {
   cpu.module("runtime").set("clients", socket.id, "logger", new classes.Logger());

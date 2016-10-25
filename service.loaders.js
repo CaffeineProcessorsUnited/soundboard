@@ -71,13 +71,19 @@ module.exports = {
 		password = stream.cpu().module("config").get("services", "spotify", "password");
 		spotify.login(username, password, function(err, session) {
 			if (err) {
-				stream.cpu().module("util").log("Error" + err);
+				stream.cpu().module("util").log(err);
+				return 0;
 			}
 			session.get(track.getPath(), function(err, music) {
 				if (err) {
-					stream.cpu().module("util").log("Error" + err);
+					stream.cpu().module("util").log(err);
+					return 0;
 				}
-				
+				stream.play(music.play(), {
+					'finish': function (){
+											session.disconnect();
+										}
+				});
 			});
 		});
 	}

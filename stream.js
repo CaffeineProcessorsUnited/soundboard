@@ -1,7 +1,7 @@
 "use strict";
 // Stream.js
 
-var throttle = require('../node-advanced-throttle/throttle.js');
+var throttle = require('advanced-throttle');
 var transcoder = require('stream-transcoder');
 var ytdl = require('ytdl-core');
 

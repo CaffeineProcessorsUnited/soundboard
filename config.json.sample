@@ -29,6 +29,10 @@
     "tts": {
       "name": "Text-to-Speech",
       "icon": "bullhorn"
+    },
+    "spotify": {
+      "username": "foo",
+      "password": "bar"
     }
   },
   "users": {

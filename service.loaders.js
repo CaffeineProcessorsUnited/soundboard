@@ -1,6 +1,7 @@
 var ytdl = require('ytdl-core');
 var fs = require('fs');
 var request = require('request');
+var spotify = require('spotify-web');
 
 function createRequest(url, onresponse, onerror) {
 	onerror = onerror || function(err) {
@@ -64,5 +65,20 @@ module.exports = {
 	},
 	"filesystem": function (stream, track) {
 		stream.play({ "stream": fs.createReadStream(track.getPath()), "track": track });
+	},
+	"spotify": function (stream, track) {
+		username = stream.cpu().module("config").get("services", "spotify", "username");
+		password = stream.cpu().module("config").get("services", "spotify", "password");
+		spotify.login(username, password, function(err, session) {
+			if (err) {
+				stream.cpu().module("util").log("Error" + err);
+			}
+			session.get(track.getPath(), function(err, music) {
+				if (err) {
+					stream.cpu().module("util").log("Error" + err);
+				}
+				
+			});
+		});
 	}
 }

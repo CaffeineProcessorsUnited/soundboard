@@ -91,7 +91,7 @@ module.exports = Class({
           }
         } else {
           if (this.isShuffle) {
-            this.currentPos = randomInt(0, this.queue.length);
+            this.currentPos = this.randomInt(0, this.queue.length);
           } else {
             this.currentPos = (this.currentPos + 1) % this.queue.length;
           }
@@ -106,6 +106,9 @@ module.exports = Class({
         }
       }
     }
+  },
+  randomInt: function(low, high) {
+    return Math.floor(Math.random() * (high - low) + low);
   },
   getShuffle: function() {
     return this.isShuffle;

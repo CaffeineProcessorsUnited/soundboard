@@ -15,10 +15,7 @@ module.exports = Class({
   },
   add: function(track, position) {
     this.queue.insert(track, position);
-    if(this.currentPos == -1){
-      this.currentPos = 0;
-    }
-    if(position <= this.currentPos) {
+    if(!!position && position <= this.currentPos) {
       this.currentPos = this.currentPos + 1;
     }
   },

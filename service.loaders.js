@@ -30,7 +30,9 @@ function createRequest(url, onresponse, onerror) {
 
 module.exports = {
 	"youtube": function(stream, track) {
-		var video = ytdl('http://youtube.com/watch?v=' + encodeURI(track.getPath()), {
+		var url = 'http://youtube.com/watch?v=' + encodeURI(track.getPath());
+		console.log(url);
+		var video = ytdl(url, {
 			filter: function(format) {
 				return format.container === 'mp4';
 			},

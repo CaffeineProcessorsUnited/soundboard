@@ -89,15 +89,23 @@ server.listen(8080, function() {
 				if (action.length > 1) {
 					action = action.slice(1);
 				}
-				service = "";
-				if (!!cpu.module("runtime").get("config")["services"][action]) {
-					service = action;
-				}
-				if (service != "" && payload != "") {
-					client.emit("add_track", {"service": service, "path": payload,'next': false});
-				} else {
-					cpu.module("util").log("I didn't understand ur command!");
-				}
+        if (action == "play") {
+          cpu.module("util").log("Play");
+          client.emit('play');
+        } else if (action == "pause") {
+          cpu.module("util").log("Pause");
+          client.emit('pause');
+        } else {
+  				service = "";
+  				if (!!cpu.module("runtime").get("config")["services"][action]) {
+  					service = action;
+  				}
+  				if (service != "" && payload != "") {
+  					client.emit("add_track", {"service": service, "path": payload,'next': false});
+  				} else {
+  					cpu.module("util").log("I didn't understand ur command!");
+  				}
+        }
 			} else {
 				cpu.module("util").log("Malformed POST data");
 				cpu.module("util").log(json);
@@ -258,21 +266,27 @@ cpu.module("socket").on('add_track', {
     var data = context["data"];
     cpu.module("util").log(data);
     if (data["service"] && data['path']) {
+      if (data["service"] == "filesystem") {
+        if (!path.resolve('./public/songs', data['path']).startsWith(path.resolve('./public/songs') + '/')) {
+          cpu.module("util").log('Invalid file path. The file must be inside the songs directory!');
+          return;
+        }
+        data['path'] = path.relative('./public/songs/filesystem/', path.resolve('./public/songs/filesystem/', data['path']));
+      }
+      if (data["service"] == "url") {
+        if (!data['path'].startsWith('http')) {
+          cpu.module("util").log('Invalid url path. The file must be a http ot https url!');
+          return;
+        }
+      }
+      if (data["service"] == "youtube") {
+        var ytidregex = new RegExp('https?:\/\/(?:www.)?(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/ ]{11})', 'i');
+        if (data["path"].match(ytidregex)) {
+          data["path"] = data["path"].replace(ytidregex, "$1");
+        }
+      }
       var track = new classes.Track(data['service'], data['path']);
       if (track.service && track.path) {
-        if (track.service == "filesystem") {
-          if (!path.resolve('./public/songs', track.path).startsWith(path.resolve('./public/songs') + '/')) {
-            cpu.module("util").log('Invalid file path. The file must be inside the songs directory!');
-            return;
-          }
-          track.path = path.relative('./public/songs/filesystem/', path.resolve('./public/songs/filesystem/', track.path));
-        }
-        if (track.service == "url") {
-          if (!track["path"].startsWith('http')) {
-            cpu.module("util").log('Invalid url path. The file must be a http ot https url!');
-            return;
-          }
-        }
         if(data["next"]) {
           var pos = cpu.module("runtime").get("queue").isEmpty() ? 0 : cpu.module("runtime").get("queue").getCurrentPosition() + 1;
           cpu.module("runtime").get("queue").add(new classes.Track(track.service, track.path, {time: track.time || undefined}), pos);
@@ -408,11 +422,15 @@ cpu.module("socket").on('play', {
   onreceive: function onPlay(cpu, context) {
     var socket = context["socket"];
     cpu.module("util").log("Play");
-    cpu.module("runtime").set("playing", true);
-    if (cpu.module("runtime").get("queue").getCurrentTrack() !== undefined) {
-      cpu.module("socket").emit("poll");
+      cpu.module("runtime").set("playing", true);
+    if (cpu.module("runtime").get("queue").getCurrentTrack() === undefined) {
+        cpu.module("runtime").get("queue").next(0);
+      var track = cpu.module("runtime").get("queue").getCurrentTrack();
+      stream.load(track);
+    } else {
       stream.play();
     }
+    cpu.module("socket").emit("poll");
   }
 });
 cpu.module("socket").on("pause", {

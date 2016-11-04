@@ -131,11 +131,15 @@ var Stream = function (cpu, config) {
       }
     };
 
-    Stream.prototype.play = function(input, eventlisteners = undefined) {
+    Stream.prototype.play = function(input, eventlisteners) {
       if (input !== undefined) {
         streamThroughFFmpeg.call(this, input, eventlisteners);
       } else {
-        _streams[_latestStream]["throttle"].resumeStream();
+        if (!!_streams[_latestStream] && !!_streams[_latestStream]["throttle"]) {
+          _streams[_latestStream]["throttle"].resumeStream();
+        } else {
+          _cpu.module("events").trigger("stream.end");
+        }
       }
     };
 

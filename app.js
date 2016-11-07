@@ -43,8 +43,6 @@ Array.prototype.insert = function(item, position) {
   }
 };
 
-
-
 web.use(express.static('public'));
 
 var classes = {
@@ -54,7 +52,7 @@ var classes = {
 };
 
 server.listen(8080, function() {
-  cpu.module("util").log('web player is running on port 8080!');
+  //cpu.module("util").log('web player is running on port 8080!');
   // api is used as a connection between POST requests and socket
   var api = express();
   var bodyParser = require("body-parser");
@@ -126,6 +124,7 @@ var cpu = require("./public/assets/js/cpu/cpu.js");
 cpu.loadModule(require("./public/assets/js/cpu/util.cpu.js"), { "utils": require('util')});
 cpu.loadModule(require("./public/assets/js/cpu/events.cpu.js"));
 cpu.loadModule(require("./public/assets/js/cpu/socket.cpu.js"), { "io" : io, "server": true });
+cpu.loadModule(require("./public/assets/js/cpu/config.cpu.js"));
 cpu.loadModule(require("./runtime.cpu.js"));
 
 cpu.module("runtime").set("started", new Date().getTime());
@@ -151,7 +150,6 @@ try {
   cpu.module("runtime").set("buttons", {});
 }
 
-cpu.loadModule(require("./public/assets/js/cpu/config.cpu.js"));
 cpu.module("config").load(cpu.module("runtime").get("config"));
 // TODO: rethink socketdata and userLoggedin
 /*
@@ -166,32 +164,52 @@ cpu.module("config").load(cpu.module("runtime").get("config"));
 *    return (!!this.socketdata(socket).user && !!this.socketdata(socket).user.authenticated);
 *  });
 */
-var Speaker = require('speaker');
-var speaker = new Speaker({
-  channels: 2,          // 2 channels
-  bitDepth: 16,         // 16-bit samples
-  sampleRate: 44100     // 44,100 Hz sample rate
-});
+
 var loaders = require('./service.loaders.js')
 var stream = require('./stream.js')(cpu);
-stream.addClient("speaker", speaker);
 for (var k in loaders) {
   if (loaders.hasOwnProperty(k) && typeof loaders[k] == 'function') {
     stream.addLoader(k, loaders[k]);
   }
 }
-//stream.load(new classes.Track("spotify", "spotify:track:0dqWPH0V3lCH4Z7KUgOi7K"))
+if (cpu.module("config").get("output", "speakers", "output")) {
+  var Speaker = require('speaker');
+  var speaker = new Speaker({
+    channels: 2,          // 2 channels
+    bitDepth: 16,         // 16-bit samples
+    sampleRate: 44100     // 44,100 Hz sample rate
+  });
+  stream.addClient("speaker", speaker);
+}
+var httpstream = null;
+if (cpu.module("config").get("output", "http", "output")) {
+  httpstream = express();
+  httpstream.get("/", function(req, res) {
+    res.set({
+  		'Content-Type': 'text/pain',
+  		'Transfer-Encoding': 'chuncked'
+  	});
+  	res.status(200);
+  	var id = req.connection.remoteAddress + '//' + new Date().getTime();
+  	stream.addClient(id, res);
+  	req.connection.on('close', function() {
+  		//cpu.module("util").log('client ' + id + ' disconnected');
+      stream.delClient(id);
+  	});
+  });
+  httpstream.listen(parseInt(cpu.module("config").get("output", "http", "port")));
+}
 
 io.on('connection', function ioOnConnection(socket) {
   cpu.module("runtime").set("clients", socket.id, "logger", new classes.Logger());
-  cpu.module("util").log('Client connected');
+  cpu.module("util").log('Socket: Client ' + socket.id + ' connected');
   cpu.module("socket").registerSocket(socket);
 });
 
 cpu.module("socket").on('disconnect', {
   onreceive: function(cpu, context) {
     var socket = context["socket"]
-    cpu.module("util").log('Client disconnected');
+    cpu.module("util").log('Socket: Client ' + socket.id + ' disconnected');
     cpu.module("runtime").delete("clients", socket.id);
   }
 });

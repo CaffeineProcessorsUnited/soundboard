@@ -116,10 +116,12 @@ var Stream = function (cpu, config) {
 
     Stream.prototype.addClient = function(id, stream) {
       _clients[id] = stream;
+      _cpu.module("util").log("Stream: client " + id + " connected");
     };
 
     Stream.prototype.delClient = function(id) {
       delete _clients[id];
+      _cpu.module("util").log("Stream: client " + id + " disconnected");
     };
 
     Stream.prototype.load = function(track) {

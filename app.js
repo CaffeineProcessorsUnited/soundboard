@@ -167,6 +167,7 @@ cpu.module("config").load(cpu.module("runtime").get("config"));
 
 var loaders = require('./service.loaders.js')
 var stream = require('./stream.js')(cpu);
+
 for (var k in loaders) {
   if (loaders.hasOwnProperty(k) && typeof loaders[k] == 'function') {
     stream.addLoader(k, loaders[k]);
@@ -204,6 +205,58 @@ io.on('connection', function ioOnConnection(socket) {
   cpu.module("runtime").set("clients", socket.id, "logger", new classes.Logger());
   cpu.module("util").log('Socket: Client ' + socket.id + ' connected');
   cpu.module("socket").registerSocket(socket);
+});
+
+// TODO: Check if configured to start outputs
+var Discord = require('discord.io');
+var discord = new Discord.Client({
+    token: "MjQ0MDYxNDA3MjY2NjAzMDA4.Cv4DlQ.ERWLxLW-byquB3dJtXTouut78Nk",
+    autorun: false
+});
+discord.on('ready', function() {
+    console.log(discord.username + " - (" + discord.id + ")");
+});
+
+discord.on('message', function(user, userID, channelID, message, event) {
+  if (message === "/channels") {
+    var channels = discord.servers[discord.channels[channelID].guild_id].channels;
+    var channellist = "";
+    for (var channel in channels) {
+      if (channels[channel].type === 'voice') {
+        channellist += channel + " - " + channels[channel].name + "\n\n";
+      }
+    }
+    discord.sendMessage({
+        to: channelID,
+        message: channellist
+    });
+  } else if (message.startsWith("/join ")) {
+    while (message.indexOf("  ") != -1) {
+      message.replace("  ", " ");
+    }
+    var parts = message.split(" ");
+    if (parts.length > 1) {
+      var voiceChannelID = parts[1];
+      console.log("Joining voice channel " + voiceChannelID);
+      discord.joinVoiceChannel(voiceChannelID, function(error) {
+        if (error) {
+          console.log(error);
+        } else {
+          console.log("Getting audio context " + voiceChannelID);
+      		discord.getAudioContext({channelID: voiceChannelID, stereo: true}, function(error, s) {
+            if (error) {
+              console.log(error);
+            } else {
+              console.log("added client discord-" + voiceChannelID);
+              stream.addClient("discord-" + voiceChannelID, s);
+            }
+          });
+        }
+      });
+    }
+  } else {
+      console.log(user, userID, channelID, message, event);
+    }
 });
 
 cpu.module("socket").on('disconnect', {
